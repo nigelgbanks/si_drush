@@ -7,10 +7,11 @@
 
 //drush hook
 
-function si_person_batch_ingest_drush_command() {
+function si_collection_batch_ingest_drush_command() {
   $items = array();
 
-  $items['si_person_batch_ingest'] = array(
+  $items['si_collection_batch_ingest'] = array(
+    'callback' => 'drush_si_collection_batch_ingest',
     'description' => "reads an filemaker pro xml dump and creates eac-cpf records and then creates objects in fedorawith eac-cpf streams",
     'arguments' => array(
       'collection_pid' => 'The pid of the collection object, this is the collection the new objects will be related to',
@@ -19,9 +20,9 @@ function si_person_batch_ingest_drush_command() {
       'input_xsl' => 'The path to the xsl file used to tranform the input_file',
     ),
     'examples' => array(
-      'drush si_person_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file',
+      'drush si_collection_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file',
     ),
-    'aliases' => array('sipersonbatch'),
+    'aliases' => array('sincdcollectionbatch'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // we can pass in users id on the command line using drush -u.
   );
 
@@ -29,7 +30,7 @@ function si_person_batch_ingest_drush_command() {
 }
 
 //drush hook
-function drush_si_person_batch_ingest($collection_pid, $relationship, $input_file, $input_xsl) {
+function drush_si_collection_batch_ingest($collection_pid, $relationship, $input_file, $input_xsl) {
   module_load_include('inc', 'fedora_repository', 'CollectionClass');
   drush_print('Current working directory ' . getcwd());
   if (isset($collection_pid)) {
@@ -55,20 +56,23 @@ function drush_si_person_batch_ingest($collection_pid, $relationship, $input_fil
     return;
   }
   
-  si_person_doAction($collection_pid, $relationship, $input_file, $input_xsl);
+  si_collection_doAction($collection_pid, $relationship, $input_file, $input_xsl);
 }
 
 //just a function
-function si_person_doAction($pid, $relationship, $input_file, $input_xsl) {
+function si_collection_doAction($pid, $relationship, $input_file, $input_xsl) {
   drush_print("input path = " . $input_path);
-  si_person_transform($input_file,$input_xsl);
+  si_collection_transform($input_file,$input_xsl);
 }
 
-function si_person_transform($xml_file, $xsl_file) {
-   $xslt = new xsltProcessor;
-$xslt->importStyleSheet(DomDocument::load($xsl_file));
-$eac_cpf_records = $xslt->transformToXML(DomDocument::loadXML(file_get_contents($xml_file)));
+function si_collection_transform($xml_file, $xsl_file) {
+  $xslt = new xsltProcessor;
+  $xslt->importStyleSheet(DomDocument::load($xsl_file));
+  $ncd_records = $xslt->transformToXML(DomDocument::loadXML(file_get_contents($xml_file)));
+  print_r($ncd_records);
 }
+
+
 
 
 ?>
