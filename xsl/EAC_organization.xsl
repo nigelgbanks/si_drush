@@ -45,7 +45,7 @@
                     <xsl:if test="eac:o_eventDateTime1/text()">
                         <maintenanceEvent>
                             <eventType>created</eventType>
-                            <eventDateTime><xsl:value-of select="eac:o_eventDateTime1"/></eventDateTime>
+                            <eventDateTime standardDateTime="{eac:o_eventDateTime1}"></eventDateTime>
                             <agentType>human</agentType> <!-- assuming all agents are human as the data does not seem to specify-->
                             <agent><xsl:value-of select="eac:o_maintenance_history_agent"/></agent>                            
                             <eventDescription>Record Created</eventDescription> <!-- eventDateTime1 corresponds to creation according to supplemental spreadsheet provided by Smithsonian-->
@@ -54,7 +54,7 @@
                     <xsl:if test="eac:o_eventDateTime2/text()">
                         <maintenanceEvent>
                             <eventType>revised</eventType>
-                            <eventDateTime><xsl:value-of select="eac:o_eventDateTime2"/></eventDateTime>
+                            <eventDateTime standardDateTime="{eac:o_eventDateTime2}"></eventDateTime>
                             <agentType>human</agentType>
                             <agent><xsl:value-of select="eac:o_maintenance_history_agent"/></agent>   
                             <eventDescription>Record Edited</eventDescription><!-- eventDateTime2 corresponds to editing according to supplemental spreadsheet provided by Smithsonian-->
@@ -63,7 +63,7 @@
                     <xsl:if test="eac:o_eventDateTime3/text()">
                         <maintenanceEvent>
                             <eventType>harvested</eventType>
-                            <eventDateTime><xsl:value-of select="eac:o_eventDateTime3"/></eventDateTime>
+                            <eventDateTime standardDateTime="{eac:o_eventDateTime3}"><xsl:value-of select="eac:o_eventDateTime3"/></eventDateTime>
                             <agentType>human</agentType>
                             <agent><xsl:value-of select="eac:o_maintenance_history_agent"/></agent>   
                             <eventDescription>Record Harvested</eventDescription><!-- eventDateTime3 corresponds to Harvesting according to supplemental spreadsheet provided by Smithsonian-->
