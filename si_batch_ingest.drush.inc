@@ -6,10 +6,10 @@
  */
 
 //drush hook
-define('EAC_PERSON_ID_NS','info:islandora/islandora-system:def/eacPersonId#');
-define('EAC_EXPEDITION_ID_NS','info:islandora/islandora-system:def/eacExpeditionId#');
-define('EAC_ORGANIZATION_ID_NS','info:islandora/islandora-system:def/eacOrganizationId#');
-define('NCD_COLLECTION_ID_NS','info:islandora/islandora-system:def/ncdCollectionId#');
+define('EAC_PERSON_ID_NS', 'info:islandora/islandora-system:def/eacPersonId#');
+define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditionId#');
+define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
+define('NCD_COLLECTION_ID_NS', 'info:islandora/islandora-system:def/ncdCollectionId#');
 
 function si_batch_ingest_drush_command() {
   $items = array();
@@ -90,10 +90,6 @@ function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $inp
  * @param <type> $url_to_tn
  */
 function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
-  drush_print("input path = " . $input_file);
-  drush_print('using type ' . $type);
-  drush_print('using collection ' . $collection_pid);
-  drush_print('using relationship of ' . $relationship);
   $xml_record = si_transform($input_file, $input_xsl);
   $type = (string) trim($type);
   $object = null;
@@ -106,7 +102,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
   }
   else if ($type == 'item') {//transform is to mods and we need to update relationships across all types from data in this record
     $xml_records = explode("</mods>", $xml_record); //they gave us all the records in one file so the tranform contains all the records and simplexml will not load it as it is many valid docs contained in one so we have to split it up
-    $orginal_records = explode("</ROW>", file_get_contents($input_file)); // there is content in the orginal that does not map to mods but we need to manage relationships
+    $orginal_records = simplexml_load_file($input_file); // there is content in the orginal that does not map to mods but we need to manage relationships
     $i = 0;
     foreach ($xml_records as $record) {
       $record = $record . '</mods>';
@@ -114,14 +110,15 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
       $namespaces = $xml->getDocNamespaces();
       $xml->registerXPathNamespace('mods', $namespaces['']);
       //TODO: implement a function to update the mods with human readable content based on the ids that exist in the data.
-  ///mods:mods/mods:name[1]/mods:namePart[1]
-      $or = $orginal_records[$i++]; //this should give us the corresponding orginal record
-      $or .="</ROW></FMPDSORESULT>"; //make this valid xml so we can do xpath
-      $relationship_data = si_get_fmp_relationship_data($or);//get an array of relationship info to update relationships and update the mods so it is more meaningful
+      ///mods:mods/mods:name[1]/mods:namePart[1]
+      $or = $orginal_records->ROW[$i++]; //this should give us the corresponding orginal record
+      //$or = $or->asXML(); //make this valid xml so we can do xpath
+      print_r($or);
+      $relationship_data = si_get_fmp_relationship_data($or); //get an array of relationship info to update relationships and update the mods so it is more meaningful
       $object = si_item_create_object($collection_pid, $relationship, $xml, $url_to_tn);
       //$object->add_relationship('hasEacCpfExpedition', $eac_id, 'info:islandora/islandora-system:def/eacItemId#');
       $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
-      si_updateAllRelationships($object, $relationship_data);//update relationships based on the info in this record
+      si_updateAllRelationships($object, $relationship_data); //update relationships based on the info in this record
     }
   }
   else {//all other types are eac-cpf
@@ -164,8 +161,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
  * an array contain this information
  * @param string $or
  */
-function si_get_fmp_relationship_data($or) {
-  $xml = simplexml_load_string($or);
+function si_get_fmp_relationship_data($xml) {
   $namespaces = $xml->getDocNamespaces();
   $xml->registerXPathNamespace('ns', $namespaces['']);
   $data = array();
@@ -182,63 +178,99 @@ function si_get_fmp_relationship_data($or) {
       $data['expedition'][] = (string) $exp;
     }
   }
-  $collection = $xml->xpath('//ns:i_collection');
-  $data['collection'][] = $collection;
+  $collections = $xml->xpath('//ns:i_collection');
+   foreach ($collections as $collection) {
+    if (!empty($collection)) {//there are some fields without data
+      $data['collections'][] = (string) $collection;
+    }
+  }
   return $data;
 }
 
 /**
- * the items mods records has all the relationships so we will update the rels-ext of the objects
- * here we have stored the needed info from the other objects in there rels-ext so we can query them
+ * the item mods and fmp-xml records have all the relationships so we will update the rels-ext of the objects
+ * here. we have stored the needed info from the other objects in there rels-ext so we can query them
  * @param fedora_item $object
  * @param array $relationship_data
  */
 function si_updateAllRelationships($object, $relationship_data) {
-    //run resource index queries to get the objects we are interested in
-    //<info:islandora/islandora-system:def/eacPersonId#hasEacCpfPerson> <info:fedora/EACP11> typical query to get creator
-    //get related people
-    foreach($relationship_data['creators'] as $creator){
-      $query='select $object from <#ri> where $object <'.EAC_PERSON_ID_NS.'> <info:fedora/'.$creator.'>';
-      $results = run_query($query);
-      //TODO: update the objects
+  //run resource index queries to get the objects we are interested in
+  //<info:islandora/islandora-system:def/eacPersonId#hasEacCpfPerson> <info:fedora/EACP11> typical query to get creator
+  //this item relates directly to these objects
+  foreach ($relationship_data['creators'] as $creator) {
+    $query = 'select $object from <#ri> where $object <' . EAC_PERSON_ID_NS . '> <info:fedora/' . $creator . '>';
+    $results = si_run_query($query);
+    $objects = si_sparql_results_as_array($results); //turn xml into array
+    foreach ($objects as $object) {
+      $object->add_relationship('hasCreator', (string) $object, FEDORA_MODEL_URI);
+      drush_print('added hasCreator relationship to ' . $object);
     }
-    foreach($relationship_data['expedition'] as $expedition){
-      $query='select $object from <#ri> where $object <'.EAC_EXPEDITION_ID_NS.'> <info:fedora/'.$expedition.'>';
-      $results = run_query($query);
-      //TODO: update the objects
+  }
+  foreach ($relationship_data['expedition'] as $expedition) {
+    $query = 'select $object from <#ri> where $object <' . EAC_EXPEDITION_ID_NS . '> <info:fedora/' . $expedition . '>';
+    $results = si_run_query($query);
+    $objects = si_sparql_results_as_array($results); //turn xml into array
+    foreach ($objects as $object) {
+      $object->add_relationship('isPartOfExpedition', (string) $object, FEDORA_MODEL_URI);
+      drush_print('added isPartOfExpedition relationship to ' . $object);
     }
-    foreach($relationship_data['collection'] as $collection){
-      $query='select $object from <#ri> where $object <'.NCD_COLLECTION_ID_NS.'> <info:fedora/'.$collection.'>';
-      $results = run_query($query);
-      //TODO: update the objects
+  }
+  foreach ($relationship_data['collections'] as $collection) {
+    $query = 'select $object from <#ri> where $object <' . NCD_COLLECTION_ID_NS . '> <info:fedora/' . $collection . '>';
+    $results = si_run_query($query);
+    $objects = si_sparql_results_as_array($results); //turn xml into array
+    foreach ($objects as $collection) {
+      $object->add_relationship('isMemberOfCollection', (string) $collection, FEDORA_MODEL_URI);
+      drush_print('added isMemberOfCollection relationship to ' . $collection);
+      //now do the indirect relationships we can relate a collection to an expedition using the info gathered from this object.
+      si_relate_collection_to_expeditions($collection, $relationship_data['expedtion']);
     }
-    /*foreach($relationship_data['organization'] as $collection){
-      $query='select $object from <#ri> where $object <'.EAC_ORGANIZATION_ID_NS.'> <info:fedora/'.$collection.'>';
-      $results = run_query($query);
-      //TODO: update the objects
-    }*/
+  }
+}
 
-  
+/**
+ *
+ * @param <type> $collection_object
+ * @param array $expeditions
+ */
+function si_relate_collection_to_expeditions($collection_object, $expeditions){
+    foreach($expeditions as $expedition){
+      $collection_object = new Fedora_Item($collection_object);
+    }
+    $collection_object->add_relationship('isMemberOf', (string) $collection, FEDORA_MODEL_URI);
 }
 
 
 /**
  *
- * @param <type> $query
+ * @param SimpleXMLElement $content
+ * @return <type>
  */
-function run_query($query){
-  module_load_include('inc','fedora_repository','CollectionClass');
-    $cc = new CollectionClass();
-    $results = $cc->getRelatedItems(NULL,$query);
-    if(isset($results)){//still doesn't tell us if these are valid results
-      return $results;
-    }else {
-      drush_print ('Error get related items, relationships cannot be updated');
-    }
+function si_sparql_results_as_array($content) {
+  $content = new SimpleXMLElement($content);
 
+  $resultsarray = array();
+  foreach ($content->results->result as $result) {
+    $resultsarray[] = substr($result->object->attributes()->uri, 12); // Remove 'info:fedora/'.
+  }
+  return $resultsarray;
 }
 
-
+/**
+ *
+ * @param <type> $query
+ */
+function si_run_query($query) {
+  module_load_include('inc', 'fedora_repository', 'CollectionClass');
+  $cc = new CollectionClass();
+  $results = $cc->getRelatedItems(NULL, $query);
+  if (isset($results)) {//still doesn't tell us if these are valid results
+    return $results;
+  }
+  else {
+    drush_print('Error get related items, relationships cannot be updated');
+  }
+}
 
 /**
  *
@@ -287,7 +319,6 @@ function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
 
   return $object;
 }
-
 
 /**
  *
