@@ -94,9 +94,9 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
   $type = (string) trim($type);
   $object = null;
   if ($type == 'collection') {//NCD schema
-    $xml_records = explode("</Recordset>", $xml_record); //they gave us all the records on one file so the tranform contains all the records as well simplexml will not load it as it is many valid docs contained in one
+    $xml_records = explode("</RecordSet>", $xml_record); //they gave us all the records on one file so the tranform contains all the records as well simplexml will not load it as it is many valid docs contained in one
     foreach ($xml_records as $record) {
-      $record = $record . '</Recordset>';
+      $record = $record . '</RecordSet>';
       si_collection_create_object($collection_pid, $relationship, $record, $url_to_tn);
     }
   }
@@ -112,12 +112,16 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
       //TODO: implement a function to update the mods with human readable content based on the ids that exist in the data.
       ///mods:mods/mods:name[1]/mods:namePart[1]
       $or = $orginal_records->ROW[$i++]; //this should give us the corresponding orginal record
-      //$or = $or->asXML(); //make this valid xml so we can do xpath
-      print_r($or);
-      $relationship_data = si_get_fmp_relationship_data($or); //get an array of relationship info to update relationships and update the mods so it is more meaningful
+      $or = $or->asXML(); //make this valid xml so we can do xpath
+      $or_xml = simplexml_load_string($or);
+      //print_r($or);
+      $relationship_data = si_get_fmp_relationship_data($or_xml); //get an array of relationship info to update relationships and update the mods so it is more meaningful
       $object = si_item_create_object($collection_pid, $relationship, $xml, $url_to_tn);
       //$object->add_relationship('hasEacCpfExpedition', $eac_id, 'info:islandora/islandora-system:def/eacItemId#');
       $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
+      ///mods:mods/mods:abstract[1]
+      $description = $xml->xpath('//mods:abstract');
+      update_dc($object, $description[0]);
       si_updateAllRelationships($object, $relationship_data); //update relationships based on the info in this record
     }
   }
@@ -145,6 +149,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
         case 'organization':
           $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
           $object->add_relationship('hasEacCpfOrganization', $eac_id, EAC_ORGANIZATION_ID_NS);
+          break;
         case 'expedition':
           drush_print('adding relationship for expedition');
           $object->add_relationship('hasEacCpfExpedition', $eac_id, EAC_EXPEDITION_ID_NS);
@@ -162,24 +167,25 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
  * @param string $or
  */
 function si_get_fmp_relationship_data($xml) {
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('ns', $namespaces['']);
+  //$namespaces = $xml->getDocNamespaces();
+  //$xml->registerXPathNamespace('ns', $namespaces['']);
   $data = array();
   ///default:FMPDSORESULT/default:ROW[1]/default:i_creator[1]/default:DATA[1]
-  $creators = $xml->xpath('//ns:i_creator/ns:DATA');
+  $creators = $xml->xpath('//i_creator/DATA');
   foreach ($creators as $creator) {
     if (!empty($creator)) {//there are some fields without data
       $data['creators'][] = (string) $creator;
+      print('added Creator ' . (string) $creator);
     }
   }
-  $expeditions = $xml->xpath('//ns:i_expedition_name/ns:DATA');
+  $expeditions = $xml->xpath('//i_expedition_name/DATA');
   foreach ($expeditions as $exp) {
     if (!empty($exp)) {//there are some fields without data
       $data['expedition'][] = (string) $exp;
     }
   }
-  $collections = $xml->xpath('//ns:i_collection');
-   foreach ($collections as $collection) {
+  $collections = $xml->xpath('//i_collection');
+  foreach ($collections as $collection) {
     if (!empty($collection)) {//there are some fields without data
       $data['collections'][] = (string) $collection;
     }
@@ -189,7 +195,7 @@ function si_get_fmp_relationship_data($xml) {
 
 /**
  * the item mods and fmp-xml records have all the relationships so we will update the rels-ext of the objects
- * here. we have stored the needed info from the other objects in there rels-ext so we can query them
+ * here. we have stored the needed info from the other objects in their rels-ext so we can query them
  * @param fedora_item $object
  * @param array $relationship_data
  */
@@ -198,32 +204,35 @@ function si_updateAllRelationships($object, $relationship_data) {
   //<info:islandora/islandora-system:def/eacPersonId#hasEacCpfPerson> <info:fedora/EACP11> typical query to get creator
   //this item relates directly to these objects
   foreach ($relationship_data['creators'] as $creator) {
-    $query = 'select $object from <#ri> where $object <' . EAC_PERSON_ID_NS . '> <info:fedora/' . $creator . '>';
+    $query = 'select $object from <#ri> where $object <' . EAC_PERSON_ID_NS . 'hasEacCpfPerson> <info:fedora/' . $creator . '>';
     $results = si_run_query($query);
     $objects = si_sparql_results_as_array($results); //turn xml into array
-    foreach ($objects as $object) {
-      $object->add_relationship('hasCreator', (string) $object, FEDORA_MODEL_URI);
-      drush_print('added hasCreator relationship to ' . $object);
+    foreach ($objects as $creator) {
+      $object->add_relationship('hasCreator', (string) $creator);
+      drush_print('added hasCreator relationship to ' . $creator);
     }
   }
   foreach ($relationship_data['expedition'] as $expedition) {
-    $query = 'select $object from <#ri> where $object <' . EAC_EXPEDITION_ID_NS . '> <info:fedora/' . $expedition . '>';
+    $query = 'select $object from <#ri> where $object <' . EAC_EXPEDITION_ID_NS . 'hasEacCpfExpedition> <info:fedora/' . $expedition . '>';
     $results = si_run_query($query);
     $objects = si_sparql_results_as_array($results); //turn xml into array
-    foreach ($objects as $object) {
-      $object->add_relationship('isPartOfExpedition', (string) $object, FEDORA_MODEL_URI);
-      drush_print('added isPartOfExpedition relationship to ' . $object);
+    foreach ($objects as $exp) {
+      //$object->add_relationship('isPartOfExpedition', (string) $exp);
+      $object->add_relationship('isMemberOfCollection', (string) $exp);
+      drush_print('added isPartOfExpedition relationship to ' . $exp);
     }
   }
   foreach ($relationship_data['collections'] as $collection) {
-    $query = 'select $object from <#ri> where $object <' . NCD_COLLECTION_ID_NS . '> <info:fedora/' . $collection . '>';
+    $query = 'select $object from <#ri> where $object <' . NCD_COLLECTION_ID_NS . 'hasNcdId> <info:fedora/' . $collection . '>';
     $results = si_run_query($query);
     $objects = si_sparql_results_as_array($results); //turn xml into array
     foreach ($objects as $collection) {
-      $object->add_relationship('isMemberOfCollection', (string) $collection, FEDORA_MODEL_URI);
+      $object->add_relationship('isMemberOfCollection', (string) $collection);
       drush_print('added isMemberOfCollection relationship to ' . $collection);
       //now do the indirect relationships we can relate a collection to an expedition using the info gathered from this object.
-      si_relate_collection_to_expeditions($collection, $relationship_data['expedtion']);
+      if(!empty($relationship_data['expedition'])) {
+        si_relate_collection_to_expeditions($collection, $relationship_data['expedition']);
+      }
     }
   }
 }
@@ -233,13 +242,18 @@ function si_updateAllRelationships($object, $relationship_data) {
  * @param <type> $collection_object
  * @param array $expeditions
  */
-function si_relate_collection_to_expeditions($collection_object, $expeditions){
-    foreach($expeditions as $expedition){
-      $collection_object = new Fedora_Item($collection_object);
-    }
-    $collection_object->add_relationship('isMemberOf', (string) $collection, FEDORA_MODEL_URI);
+function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
+  $collection_object = new Fedora_Item($collection_pid);
+  foreach ($expeditions as $expedition) {
+    $query = 'select $object from <#ri> where $object <' . EAC_EXPEDITION_ID_NS . 'hasEacCpfExpedition> <info:fedora/' . $collection . '>';
+    $results = si_run_query($query);
+    $objects = si_sparql_results_as_array($results); //turn xml into array
+    foreach($objects as $exp)
+    $collection_object->add_relationship('isMemberOfCollection', (string) $exp);
+    drush_print('added expedition '.(string)$exp. ' to '. $collection_pid);
+  }
+  
 }
-
 
 /**
  *
@@ -299,7 +313,7 @@ function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
   $label = (string) $result[0];
-  $new_pid = Fedora_Item::get_next_PID_in_namespace(); //we did not define a namespace so it will use the defaul
+  $new_pid = Fedora_Item::get_next_PID_in_namespace('si'); //we did not define a namespace so it will use the defaul
   drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
   $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
   drush_print("created object $new_pid now adding datastreams");
@@ -309,7 +323,7 @@ function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
   else {
     drush_print('Failed adding TN stream to ' . $new_pid . " using url $url_to_tn");
   }
-  if ($object->add_datastream_from_string($xml->asXML(), 'EACCPF', 'EAC-CPF', 'text/xml', 'M', 'added EAC-CPF Stream')) {
+  if ($object->add_datastream_from_string($xml->asXML(), 'EAC-CPF', 'EAC-CPF', 'text/xml', 'M', 'added EAC-CPF Stream')) {
     drush_print('added EAC-CPF stream to ' . $new_pid);
   }
   else {
@@ -322,17 +336,20 @@ function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
 
 /**
  *
- * @param <type> $collection_pid
- * @param <type> $relationship
- * @param <type> $xml
- * @param <type> $url_to_tn 
+ * @param string $collection_pid
+ * @param string $relationship
+ * @param string $xml
+ * @param string $url_to_tn
  */
 function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  $result = $xml->xpath('//mods:name/mods:namePart');
+  $result = $xml->xpath('//mods:titleInfo/mods:title');
   $label = (string) $result[0];
-  $new_pid = Fedora_Item::get_next_PID_in_namespace(); //we did not define a namespace so it will use the defaul
+  $new_pid = Fedora_Item::get_next_PID_in_namespace('si');
   drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
+  if(strlen($label)>255){
+    $label = substr($label,0,254);
+  }
   $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
   drush_print("created object $new_pid now adding datastreams");
   if ($object->add_datastream_from_url($url_to_tn, 'TN', 'TN', 'image/png', 'M', 'Added TN Stream')) {
@@ -373,7 +390,7 @@ function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $
   $result = $xml->xpath('//__empty_ns:CollectionId');
   $ncd_id = (string) $result[0]; //we want to add this to the triple store so we can query when ingesting other objects
   drush_print("ncd id = $ncd_id");
-  $new_pid = Fedora_Item::get_next_PID_in_namespace(); //we did not define a namespace so it will use the defaul
+  $new_pid = Fedora_Item::get_next_PID_in_namespace("si");
   drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
   $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
   drush_print("created object $new_pid now adding datastreams");
@@ -398,7 +415,7 @@ function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $
   $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
 
   $object->add_relationship('hasNcdId', $ncd_id, NCD_COLLECTION_ID_NS);
-  $result = $xml->xpath('//ns:biogHist/ns:p');
+  $result = $xml->xpath('//__empty_ns:dc_description');
   update_dc($object, (string) $result[0]);
   return $object;
 }
@@ -406,13 +423,13 @@ function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $
 /**
  *
  * @param <type> $object
- * @param <type> $doi
+ * @param <type> $description
  * @param <type> $title optionally set the title as well
  */
 function update_dc($object, $description) {
   module_load_include('inc', 'fedora_repository', 'api/dublin_core');
   $dc = new Dublin_Core($object);
-  $dc->remove_element("dc:description");
+  //$dc->remove_element("dc:description");
   if (isset($description)) {
     $dc->set_element('dc:descripton', $description);
   }
