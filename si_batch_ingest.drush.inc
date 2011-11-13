@@ -231,7 +231,7 @@ function si_updateAllRelationships($object, $relationship_data) {
       $object->add_relationship('isMemberOfCollection', (string) $collection);
       drush_print('added isMemberOfCollection relationship to ' . $collection);
       //now do the indirect relationships we can relate a collection to an expedition using the info gathered from this object.
-      if(!empty($relationship_data['expedition'])) {
+      if (!empty($relationship_data['expedition'])) {
         si_relate_collection_to_expeditions($collection, $relationship_data['expedition']);
       }
     }
@@ -249,11 +249,10 @@ function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
     $query = 'select $object from <#ri> where $object <' . EAC_EXPEDITION_ID_NS . 'hasEacCpfExpedition> <info:fedora/' . $collection . '>';
     $results = si_run_query($query);
     $objects = si_sparql_results_as_array($results); //turn xml into array
-    foreach($objects as $exp)
-    $collection_object->add_relationship('isMemberOfCollection', (string) $exp);
-    drush_print('added expedition '.(string)$exp. ' to '. $collection_pid);
+    foreach ($objects as $exp)
+      $collection_object->add_relationship('isMemberOfCollection', (string) $exp);
+    drush_print('added expedition ' . (string) $exp . ' to ' . $collection_pid);
   }
-  
 }
 
 /**
@@ -347,10 +346,9 @@ function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn
   $result = $xml->xpath('//mods:titleInfo/mods:title');
   $label = (string) $result[0];
   $new_pid = Fedora_Item::get_next_PID_in_namespace('si');
-  si_update_mods_creator($xml);//get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
   drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
-  if(strlen($label)>255){//@TODO do the full regex check
-    $label = substr($label,0,254);
+  if (strlen($label) > 255) {//@TODO do the full regex check
+    $label = substr($label, 0, 254);
   }
   $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
   drush_print("created object $new_pid now adding datastreams");
@@ -360,6 +358,7 @@ function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn
   else {
     drush_print('Failed adding TN stream to ' . $new_pid . " using url $url_to_tn");
   }
+  si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
   if ($object->add_datastream_from_string($xml->asXML(), 'MODS', 'MODS', 'text/xml', 'M', 'added EAC-CPF Stream')) {
     drush_print('added MODS stream to ' . $new_pid);
   }
@@ -369,6 +368,41 @@ function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn
   $object->add_relationship($relationship, $collection_pid); //add_relationship always returns void so no sense checking
 
   return $object;
+}
+
+/**
+ * the mods creator is just a place holder pointing to the Eaccpf record updating it here.
+ * @param object $xml
+ */
+function si_update_mods_creator(&$xml) {
+  $creators = $xml->xpath('//mods:role[mods:roleTerm = "creator"]/../../mods:name/mods:namePart');
+  foreach ($creators as $creator) {
+    $value = (string) $creator[0];
+    if (!empty($value)) {
+      $query = 'select $object from <#ri> where $object <' . EAC_PERSON_ID_NS . 'hasEacCpfPerson> <info:fedora/' . (string) $creator . '>';
+      $results = si_run_query($query);
+      $objects = si_sparql_results_as_array($results); //turn xml into array
+      $item = new Fedora_Item((string) $objects[0]); //only one creator per mods creator entry
+      $eac = $item->get_datastream_dissemination("EAC-CPF");
+      if (empty($eac)) {
+        $eac = $item->get_datastream_dissemination("EACCPF");
+      }
+      $eac_xml = simplexml_load_string($eac);
+      $namespaces = $eac_xml->getDocNamespaces();
+      $eac_xml->registerXPathNamespace('eac', 'urn:isbn:1-931666-33-4');
+      /* <cpfDescription>
+        <identity>
+        <entityType>person</entityType>
+        <nameEntry localType="primary">
+        <part localType="fullname">Abbott, William Louis, 1860-1936</part>
+        </nameEntry> */
+      $creator_text = $eac_xml->xpath('//eac:nameEntry[@localType="primary"]/eac:part');
+      //$creator = (string)$creator_text[0];
+      $dom_node = dom_import_simplexml($creator);
+      $dom_node->nodeValue = (string) $creator_text[0];
+    }
+  }
+  drush_print('mods  creator ' . (string) $result[0]);
 }
 
 /**
@@ -422,7 +456,7 @@ function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $
   return $object;
 }
 
-function si_add_relationship_with_count($relationShip,$object,$uri){
+function si_add_relationship_with_count($relationShip, $object, $uri) {
 
 }
 
@@ -430,7 +464,7 @@ function si_add_relationship_with_count($relationShip,$object,$uri){
  *
  * @param string $object
  * @param string $description
- * 
+ *
  */
 function si_update_dc($object, $description) {
   module_load_include('inc', 'fedora_repository', 'api/dublin_core');
