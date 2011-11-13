@@ -83,11 +83,11 @@ function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $inp
 
 /**
  *
- * @param <type> $collection_pid
- * @param <type> $relationship
- * @param <type> $input_file
- * @param <type> $input_xsl
- * @param <type> $url_to_tn
+ * @param string $collection_pid
+ * @param string $relationship
+ * @param string $input_file
+ * @param string $input_xsl
+ * @param string $url_to_tn
  */
 function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
   $xml_record = si_transform($input_file, $input_xsl);
@@ -121,7 +121,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
       $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
       ///mods:mods/mods:abstract[1]
       $description = $xml->xpath('//mods:abstract');
-      update_dc($object, $description[0]);
+      si_update_dc($object, $description[0]);
       si_updateAllRelationships($object, $relationship_data); //update relationships based on the info in this record
     }
   }
@@ -140,7 +140,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
       $object = si_create_object($collection_pid, $relationship, $xml, $url_to_tn);
       //default:eac-cpf/default:cpfDescription[1]/default:description[1]/default:biogHist[1]/default:p[1]
       $result = $xml->xpath('//ns:biogHist/ns:p');
-      update_dc($object, (string) $result[0]);
+      si_update_dc($object, (string) $result[0]);
       switch ($type) {
         case 'person':
           $object->add_relationship('hasEacCpfPerson', $eac_id, EAC_PERSON_ID_NS);
@@ -209,6 +209,7 @@ function si_updateAllRelationships($object, $relationship_data) {
     $objects = si_sparql_results_as_array($results); //turn xml into array
     foreach ($objects as $creator) {
       $object->add_relationship('hasCreator', (string) $creator);
+      $object->add_relationship('isMemberOfCollection', (string) $creator);
       drush_print('added hasCreator relationship to ' . $creator);
     }
   }
@@ -346,8 +347,9 @@ function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn
   $result = $xml->xpath('//mods:titleInfo/mods:title');
   $label = (string) $result[0];
   $new_pid = Fedora_Item::get_next_PID_in_namespace('si');
+  si_update_mods_creator($xml);//get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
   drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
-  if(strlen($label)>255){
+  if(strlen($label)>255){//@TODO do the full regex check
     $label = substr($label,0,254);
   }
   $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
@@ -416,17 +418,21 @@ function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $
 
   $object->add_relationship('hasNcdId', $ncd_id, NCD_COLLECTION_ID_NS);
   $result = $xml->xpath('//__empty_ns:dc_description');
-  update_dc($object, (string) $result[0]);
+  si_update_dc($object, (string) $result[0]);
   return $object;
+}
+
+function si_add_relationship_with_count($relationShip,$object,$uri){
+
 }
 
 /**
  *
- * @param <type> $object
- * @param <type> $description
- * @param <type> $title optionally set the title as well
+ * @param string $object
+ * @param string $description
+ * 
  */
-function update_dc($object, $description) {
+function si_update_dc($object, $description) {
   module_load_include('inc', 'fedora_repository', 'api/dublin_core');
   $dc = new Dublin_Core($object);
   //$dc->remove_element("dc:description");
