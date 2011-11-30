@@ -471,7 +471,7 @@ function si_update_dc($object, $description) {
   $dc = new Dublin_Core($object);
   //$dc->remove_element("dc:description");
   if (isset($description)) {
-    $dc->set_element('dc:descripton', $description);
+    $dc->set_element('dc:description', $description);
   }
   else {
     drush_print("error adding description to dc, description not set.");
