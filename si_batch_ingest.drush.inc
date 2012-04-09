@@ -5,7 +5,7 @@
  * and open the template in the editor.
  */
 
-//drush hook
+
 define('EAC_PERSON_ID_NS', 'info:islandora/islandora-system:def/eacPersonId#');
 define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditionId#');
 define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
@@ -164,7 +164,8 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
  * reads the orginal xml before we tranform to mods
  * gets the fields that hold relationhsip info and returns
  * an array contain this information
- * @param string $or
+ * @param string $xml
+ * @return array
  */
 function si_get_fmp_relationship_data($xml) {
   //$namespaces = $xml->getDocNamespaces();
@@ -240,7 +241,8 @@ function si_updateAllRelationships($object, $relationship_data) {
 
 /**
  *
- * @param <type> $collection_object
+ * @param string $collection_pid
+ * @param array $expeditions
  * @param array $expeditions
  */
 function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
@@ -258,7 +260,7 @@ function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
 /**
  *
  * @param SimpleXMLElement $content
- * @return <type>
+ * @return array
  */
 function si_sparql_results_as_array($content) {
   $content = new SimpleXMLElement($content);
@@ -272,12 +274,12 @@ function si_sparql_results_as_array($content) {
 
 /**
  *
- * @param <type> $query
+ * @param strings $query
  */
 function si_run_query($query) {
   module_load_include('inc', 'fedora_repository', 'CollectionClass');
   $cc = new CollectionClass();
-  $results = $cc->getRelatedItems(NULL, $query);
+  $results = $cc->getRelatedItems(NULL, $query,1000000);
   if (isset($results)) {//still doesn't tell us if these are valid results
     return $results;
   }
@@ -288,12 +290,8 @@ function si_run_query($query) {
 
 /**
  *
- * @param <type> $pid
- * @param <type> $relationship
- * @param <type> $xml_file
- * @param <type> $xsl_file
- * @param <type> $url_to_tn
- * @param <type> $delimiter
+ * @param string $xml_file
+ * @param string $xsl_file
  */
 function si_transform($xml_file, $xsl_file) {
   $xslt = new xsltProcessor;
@@ -304,10 +302,10 @@ function si_transform($xml_file, $xsl_file) {
 
 /**
  *
- * @param <type> $collection_pid
- * @param <type> $relationship
- * @param <type> $xml
- * @param <type> $url_to_tn
+ * @param string $collection_pid
+ * @param string $relationship
+ * @param string $xml
+ * @param string $url_to_tn
  */
 function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
@@ -387,6 +385,10 @@ function si_update_mods_creator(&$xml) {
       if (empty($eac)) {
         $eac = $item->get_datastream_dissemination("EACCPF");
       }
+      if (empty($eac)){
+        drush_print("Error reading EAC-CPF stream");
+        return;
+      }
       $eac_xml = simplexml_load_string($eac);
       $namespaces = $eac_xml->getDocNamespaces();
       $eac_xml->registerXPathNamespace('eac', 'urn:isbn:1-931666-33-4');
@@ -407,11 +409,11 @@ function si_update_mods_creator(&$xml) {
 
 /**
  * 
- * @param <type> $collection_pid
- * @param <type> $relationship
- * @param <type> $ncd_xml
- * @param <type> $url_to_tn
- * @return <type> 
+ * @param string $collection_pid
+ * @param string $relationship
+ * @param string $ncd_xml
+ * @param string $url_to_tn
+ * @return fedora_item
  */
 function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $url_to_tn) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
