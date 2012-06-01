@@ -208,10 +208,10 @@
                 <place>
                     <address>
                         <xsl:if test="eac:p_address1">
-                            <addressLine localType="street1"><xsl:value-of select="eac:p_address1"/></addressLine>
+                            <addressLine localType="line1"><xsl:value-of select="eac:p_address1"/></addressLine>
                         </xsl:if>
                         <xsl:if test="eac:p_address2">
-                           <addressLine localType="street2"><xsl:value-of select="eac:p_address2"/></addressLine>
+                           <addressLine localType="line2"><xsl:value-of select="eac:p_address2"/></addressLine>
                         </xsl:if>
                         <xsl:if test="eac:p_city">
                             <addressLine localType="city"><xsl:value-of select="eac:p_city"/></addressLine>
