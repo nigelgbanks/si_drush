@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns="urn:isbn:1-931666-33-4" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-    version="1.0" xmlns:eac="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="eac">
+<xsl:stylesheet version="1.0"
+    xmlns="urn:isbn:1-931666-33-4"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:eac="http://www.filemaker.com/fmpdsoresult" 
+    xmlns:date="http://exslt.org/dates-and-times"
+    exclude-result-prefixes="eac"
+    extension-element-prefixes="date">
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
     <!-- EAC-CPF: Generates a EAC-CPF document for each row in the FileMaker Exported File -->
     <xsl:template name="eaccpf">
@@ -34,8 +39,6 @@
         <xsl:param name="language_codes"/>
         <xsl:param name="scripts"/>
         <xsl:param name="script_codes"/>
-        <xsl:param name="subjects"/>
-        <xsl:param name="places"/>
         <eac-cpf xmlns="urn:isbn:1-931666-33-4"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -74,8 +77,6 @@
                 <xsl:with-param name="language_codes" select="$language_codes"/>
                 <xsl:with-param name="scripts" select="$scripts"/>
                 <xsl:with-param name="script_codes" select="$script_codes"/>
-                <xsl:with-param name="subjects" select="$subjects"/>
-                <xsl:with-param name="places"  select="$places"/>
             </xsl:call-template>
         </eac-cpf>
     </xsl:template>
@@ -166,14 +167,14 @@
         <xsl:param name="value"/>
         <publicationStatus>
             <xsl:choose>
-                <xsl:when test="$value = 'inProgress'">
-                    <xsl:text>inProgress</xsl:text>
+                <xsl:when test="$value = 'inProcess'">
+                    <xsl:text>inProcess</xsl:text>
                 </xsl:when>
                 <xsl:when test="$value = 'approved'">
                     <xsl:text>approved</xsl:text>
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:text>inProgress</xsl:text>
+                    <xsl:text>inProcess</xsl:text>
                 </xsl:otherwise>
             </xsl:choose>
         </publicationStatus>
@@ -185,12 +186,29 @@
         <xsl:param name="edited"/>
         <xsl:param name="harvested"/>
         <maintenanceHistory>
-            <xsl:call-template name="maintenanceEvent">
-                <xsl:with-param name="type">created</xsl:with-param>
-                <xsl:with-param name="date" select="$created"/>
-                <xsl:with-param name="agency" select="$agency"/>
-                <xsl:with-param name="description">Record Created</xsl:with-param>
-            </xsl:call-template>
+            <xsl:choose>
+                <xsl:when test="normalize-space($created)">
+                    <xsl:call-template name="maintenanceEvent">
+                        <xsl:with-param name="type">created</xsl:with-param>
+                        <xsl:with-param name="date" select="$created"/>
+                        <xsl:with-param name="agency" select="$agency"/>
+                        <xsl:with-param name="description">Record Created</xsl:with-param>
+                    </xsl:call-template>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:variable name="date" select="date:date()"/>
+                    <xsl:variable name="year" select="substring($date, '1', '4')"/>
+                    <xsl:variable name="month" select="substring($date, '6', '2')"/>
+                    <xsl:variable name="day" select="substring($date, '9', '2')"/>
+                    <xsl:variable name="formatted" select="concat($month, '/', $day, '/', $year)"/>
+                    <xsl:call-template name="maintenanceEvent">
+                        <xsl:with-param name="type">created</xsl:with-param>
+                        <xsl:with-param name="date" select="$formatted"/>
+                        <xsl:with-param name="agency" select="$agency"/>
+                        <xsl:with-param name="description">No Record Create Date Given. This is the time approximately at which this file was ingested</xsl:with-param>
+                    </xsl:call-template>
+                </xsl:otherwise>
+            </xsl:choose>
             <xsl:call-template name="maintenanceEvent">
                 <xsl:with-param name="type">revised</xsl:with-param>
                 <xsl:with-param name="date" select="$edited"/>
@@ -211,7 +229,7 @@
         <xsl:param name="date"/>
         <xsl:param name="agency"/>
         <xsl:param name="description"/>
-        <xsl:if test="$date/text()">
+        <xsl:if test="normalize-space($date)">
             <maintenanceEvent>
                 <eventType>
                     <xsl:value-of select="$type"/>
@@ -235,13 +253,13 @@
         <xsl:param name="sources"/>
         <xsl:if test="$sources">
             <sources>
-                <source>
-                    <xsl:for-each select="$sources">
+                <xsl:for-each select="$sources">
+                    <source>
                         <sourceEntry>
                             <xsl:value-of select="normalize-space(text())"/>
                         </sourceEntry>
-                    </xsl:for-each>
-                </source>
+                    </source>
+                </xsl:for-each>
             </sources>
         </xsl:if>
     </xsl:template>
@@ -270,8 +288,6 @@
         <xsl:param name="language_codes"/>
         <xsl:param name="scripts"/>
         <xsl:param name="script_codes"/>
-        <xsl:param name="subjects"/>
-        <xsl:param name="places"/>
         <cpfDescription>
             <xsl:call-template name="identity">
                 <xsl:with-param name="id" select="$id"/>
@@ -299,8 +315,6 @@
                 <xsl:with-param name="language_codes" select="$language_codes"/>
                 <xsl:with-param name="scripts" select="$scripts"/>
                 <xsl:with-param name="script_codes" select="$script_codes"/>
-                <xsl:with-param name="subjects" select="$subjects"/>
-                <xsl:with-param name="places" select="$places"/>
             </xsl:call-template>
             <xsl:call-template name="relations">
                 <xsl:with-param name="a"/>
@@ -358,12 +372,14 @@
     <!-- Abbrivated Name -->
     <xsl:template name="alternativeNames">
         <xsl:param name="alternative_names"/>
-        <xsl:for-each select="$alternative_names">
-            <xsl:call-template name="nameEntry">
-                <xsl:with-param name="type">alt</xsl:with-param>
-                <xsl:with-param name="value" select="text()"/>
-            </xsl:call-template>
-        </xsl:for-each>
+        <xsl:if test="$alternative_names">
+           <xsl:for-each select="$alternative_names">
+               <xsl:call-template name="nameEntry">
+                   <xsl:with-param name="type">alt</xsl:with-param>
+                   <xsl:with-param name="value" select="text()"/>
+               </xsl:call-template>
+           </xsl:for-each>
+        </xsl:if>
     </xsl:template>
     <!-- Name Entry -->
     <xsl:template name="nameEntry">
@@ -400,8 +416,6 @@
         <xsl:param name="language_codes"/>
         <xsl:param name="scripts"/>
         <xsl:param name="script_codes"/>
-        <xsl:param name="subjects"/>
-        <xsl:param name="places"/>
         <description>
             <xsl:call-template name="existDates">
                 <xsl:with-param name="start_date" select="$start_date"/>
@@ -418,14 +432,6 @@
                 <xsl:with-param name="url" select="$url"/>
                 <xsl:with-param name="phone" select="$phone"/>
                 <xsl:with-param name="email_address" select="$email_address"/>
-            </xsl:call-template>
-            <xsl:call-template name="localDescriptions">
-                <xsl:with-param name="type">subjects</xsl:with-param>
-                <xsl:with-param name="terms" select="$subjects"/>
-            </xsl:call-template>
-            <xsl:call-template name="localDescriptions">
-                <xsl:with-param name="type">places</xsl:with-param>
-                <xsl:with-param name="terms" select="$places"/>
             </xsl:call-template>
             <xsl:call-template name="occupation">
                 <xsl:with-param name="occupations" select="$occupations"/>
@@ -455,12 +461,21 @@
                     <xsl:value-of select="$end_date"/>
                 </toDate>
             </dateRange>
-            <xsl:if test="$exist_date_description/text()">
-                <descriptiveNote>
-                    <xsl:value-of select="$exist_date_description"/>
-                </descriptiveNote>
+            <xsl:if test="normalize-space($exist_date_description)">
+                <xsl:call-template name="descriptiveNote">
+                    <xsl:with-param name="value" select="$exist_date_description"/>
+                </xsl:call-template>
             </xsl:if>
         </existDates>
+    </xsl:template>
+    <!-- Descriptive Note -->
+    <xsl:template name="descriptiveNote">
+        <xsl:param name="value"/>
+        <descriptiveNote>
+            <p>
+                <xsl:value-of select="$value"/>
+            </p>
+        </descriptiveNote>
     </xsl:template>
     <!-- Place -->
     <xsl:template name="place">
@@ -550,27 +565,32 @@
     <!-- localDescriptions -->
     <xsl:template name="localDescriptions">
         <xsl:param name="type"/>
+        <xsl:param name="localType" select="$type"/>
         <xsl:param name="terms"/>
-        <localDescriptions localType="{$type}">
-            <xsl:for-each select="$terms">
-                <localDescription>
-                    <term>
-                        <xsl:value-of select="normalize-space(text())"/>
-                    </term>
-                </localDescription>
-            </xsl:for-each>
-        </localDescriptions>
+        <xsl:if test="$terms">
+           <localDescriptions localType="{$type}">
+               <xsl:for-each select="$terms">
+                   <localDescription localType="{$localType}">
+                       <term>
+                           <xsl:value-of select="normalize-space(text())"/>
+                       </term>
+                   </localDescription>
+               </xsl:for-each>
+           </localDescriptions>
+        </xsl:if>
     </xsl:template>
     <!-- Occupations -->
     <xsl:template name="occupation">
         <xsl:param name="occupations"/>
-        <xsl:for-each select="$occupations">
-            <occupation>
-                <term>
-                    <xsl:value-of select="text()"/>
-                </term>
-            </occupation>
-        </xsl:for-each>
+        <xsl:if test="$occupations">
+           <xsl:for-each select="$occupations">
+               <occupation>
+                   <term>
+                       <xsl:value-of select="text()"/>
+                   </term>
+               </occupation>
+           </xsl:for-each>
+        </xsl:if>
     </xsl:template>
     <!-- Languages Used -->
     <xsl:template name="languagesUsed">
@@ -578,16 +598,18 @@
         <xsl:param name="language_codes"/>
         <xsl:param name="scripts"/>
         <xsl:param name="script_codes"/>
-        <languagesUsed>
-            <xsl:for-each select="$languages">
-                <xsl:call-template name="languageUsed">
-                    <xsl:with-param name="language" select="."/>
-                    <xsl:with-param name="language_code" select="$language_codes[position()]"/>
-                    <xsl:with-param name="script" select="$scripts[position()]"/>
-                    <xsl:with-param name="script_code" select="$script_codes[position()]"/>
-                </xsl:call-template>
-            </xsl:for-each>
-        </languagesUsed>
+        <xsl:if test="$languages[normalize-space(text())]">
+           <languagesUsed>
+               <xsl:for-each select="$languages">
+                   <xsl:call-template name="languageUsed">
+                       <xsl:with-param name="language" select="."/>
+                       <xsl:with-param name="language_code" select="$language_codes[position()]"/>
+                       <xsl:with-param name="script" select="$scripts[position()]"/>
+                       <xsl:with-param name="script_code" select="$script_codes[position()]"/>
+                   </xsl:call-template>
+               </xsl:for-each>
+           </languagesUsed>
+        </xsl:if>
     </xsl:template>
     <!-- Languages Used -->
     <xsl:template name="languageUsed">
@@ -626,11 +648,9 @@
                 <xsl:value-of select="normalize-space($value)"/>
             </relationEntry>
             <xsl:if test="$description">
-                <descriptiveNote>
-                    <p>
-                        <xsl:value-of select="normalize-space($description)"/>
-                    </p>
-                </descriptiveNote>
+                <xsl:call-template name="descriptiveNote">
+                    <xsl:with-param name="value" select="$description"/>
+                </xsl:call-template>
             </xsl:if>
         </cpfRelation>
     </xsl:template>

@@ -21,28 +21,53 @@
                 <xsl:with-param name="type">corporateBody</xsl:with-param>
                 <xsl:with-param name="primary_name" select="eac:e_primary_name"/>
                 <xsl:with-param name="alternative_names" select="eac:e_alt_name1 | eac:e_alt_name3 | eac:e_alt_name3"/>
-                <xsl:with-param name="start_date" select="eac:e_exist_date_start"/>
-                <xsl:with-param name="end_date" select="eac:e_exist_date_end"/>
-                <xsl:with-param name="exist_date_description" select="eac:e_exist_date_description"/>
-                <xsl:with-param name="description" select="eac:e_description"/>
-                <xsl:with-param name="languages" select="eac:e_language1 | eac:e_language2"/>
-                <xsl:with-param name="language_codes" select="eac:e_language1_code | eac:e_language2_code"/>
-                <xsl:with-param name="scripts" select="eac:e_language1_script | eac:e_language2_script"/>
-                <xsl:with-param name="script_codes" select="eac:e_language1_script_code | eac:e_language2_script_code"/>
-                <xsl:with-param name="subjects" select="eac:e_subject/eac:DATA[normalize-space(text())]"/>
-                <xsl:with-param name="places" select="eac:e_place/eac:DATA[normalize-space(text())]"/>
             </xsl:call-template>
         </xsl:for-each>
     </xsl:template>
-    <!-- No Occupation defined for Expeditions -->
-    <xsl:template name="occupation"/>
-    <!-- No Address defined for Expeditions -->
-    <xsl:template name="place"/>
+    <!-- Description -->
+    <xsl:template name="description">
+        <xsl:variable name="start_date" select="eac:e_exist_date_start"/>
+        <xsl:variable name="end_date" select="eac:e_exist_date_end"/>
+        <xsl:variable name="exist_date_description" select="eac:e_exist_date_description"/>
+        <xsl:variable name="languages" select="eac:e_language1 | eac:e_language2"/>
+        <xsl:variable name="description" select="eac:e_description"/>
+        <xsl:variable name="language_codes" select="eac:e_language1_code | eac:e_language2_code"/>
+        <xsl:variable name="scripts" select="eac:e_language1_script | eac:e_language2_script"/>
+        <xsl:variable name="script_codes" select="eac:e_language1_script_code | eac:e_language2_script_code"/>
+        <xsl:variable name="subjects" select="eac:e_subject/eac:DATA[normalize-space(text())]"/>
+        <xsl:variable name="places" select="eac:e_place/eac:DATA[normalize-space(text())]"/>
+        <description>
+            <xsl:call-template name="existDates">
+                <xsl:with-param name="start_date" select="$start_date"/>
+                <xsl:with-param name="end_date" select="$end_date"/>
+                <xsl:with-param name="exist_date_description" select="$exist_date_description"/>
+            </xsl:call-template>
+            <xsl:call-template name="localDescriptions">
+                <xsl:with-param name="type">subjects</xsl:with-param>
+                <xsl:with-param name="localType">subject</xsl:with-param>
+                <xsl:with-param name="terms" select="$subjects"/>
+            </xsl:call-template>
+            <xsl:call-template name="localDescriptions">
+                <xsl:with-param name="type">places</xsl:with-param>
+                <xsl:with-param name="localType">place</xsl:with-param>
+                <xsl:with-param name="terms" select="$places"/>
+            </xsl:call-template>
+            <xsl:call-template name="languagesUsed">
+                <xsl:with-param name="languages" select="$languages"/>
+                <xsl:with-param name="language_codes" select="$language_codes"/>
+                <xsl:with-param name="scripts" select="$scripts"/>
+                <xsl:with-param name="script_codes" select="$script_codes"/>
+            </xsl:call-template>
+            <xsl:call-template name="biogHist">
+                <xsl:with-param name="description" select="$description"/>
+            </xsl:call-template>
+        </description>
+    </xsl:template>
     <!-- EAC relationships -->
     <xsl:template name="relations">
-        <xsl:param name="participants" select="eac:e_participant_person/eac:DATA[normalize-space(text())]"/>
-        <xsl:param name="organizations" select="eac:e_participant_organization/eac:DATA[normalize-space(text())]"/>
-        <xsl:param name="materials" select="eac:e_related_material/eac:DATA[normalize-space(text())]"/>
+        <xsl:variable name="participants" select="eac:e_participant_person/eac:DATA[normalize-space(text())]"/>
+        <xsl:variable name="organizations" select="eac:e_participant_organization/eac:DATA[normalize-space(text())]"/>
+        <xsl:variable name="materials" select="eac:e_related_material/eac:DATA[normalize-space(text())]"/>
         <relations>
             <xsl:for-each select="$participants">
                 <xsl:call-template name="cpfRelation">
