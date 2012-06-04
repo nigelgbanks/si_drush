@@ -480,7 +480,7 @@
         <xsl:param name="value"/>
         <descriptiveNote>
             <p>
-                <xsl:value-of select="$value"/>
+                <xsl:value-of select="normalize-space($value)"/>
             </p>
         </descriptiveNote>
     </xsl:template>

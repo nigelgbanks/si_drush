@@ -1,247 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--takes data exported from Smithsonian's filemaker db and transforms to EAC.  This xslt works with the filemaker person records-->
-<xsl:stylesheet version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<xsl:stylesheet version="1.0" xmlns="urn:isbn:1-931666-33-4"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:eac="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="eac">
+    <xsl:import href="EAC_Base.xsl"/>
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
+    <!-- Entry Point -->
     <xsl:template match="/">
         <xsl:for-each select="//eac:ROW">
-            <eac-cpf xmlns="urn:isbn:1-931666-33-4"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                xsi:schemaLocation="urn:isbn:1-931666-33-4 http://eac.staatsbibliothek-berlin.de/schema/cpf.xsd">
-                <xsl:call-template name="control"/>
-                <xsl:call-template name="main"/>
-            </eac-cpf>
+            <xsl:call-template name="eaccpf">
+                <xsl:with-param name="id" select="eac:organizationID"/>
+                <xsl:with-param name="type">corporateBody</xsl:with-param>
+                <xsl:with-param name="maintenance_status" select="eac:o_maintenanceStatus"/>
+                <xsl:with-param name="publication_status" select="eac:o_publicationStatus"/>
+                <xsl:with-param name="agency" select="eac:o_maintenance_agency"/>
+                <xsl:with-param name="created" select="eac:o_eventDateTime1"/>
+                <xsl:with-param name="edited" select="eac:o_eventDateTime2"/>
+                <xsl:with-param name="harvested" select="eac:o_eventDateTime3"/>
+                <xsl:with-param name="sources"
+                    select="eac:o_source/eac:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="primary_name" select="eac:o_primary_name"/>
+                <xsl:with-param name="abbrivated_name" select="eac:org_abbreviation"/>
+                <xsl:with-param name="alternative_names"
+                    select="eac:o_alt_name1 | eac:o_alt_name3 | eac:o_alt_name3"/>
+                <xsl:with-param name="description" select="eac:o_description"/>
+                <xsl:with-param name="languages" select="eac:o_language1 | eac:o_language2 | eac:o_language3"/>
+                <xsl:with-param name="language_codes"
+                    select="eac:o_language1_code | eac:o_language2_code | eac:o_language3_code"/>
+                <xsl:with-param name="scripts"
+                    select="eac:o_language1_script | eac:o_language2_script | eac:o_language3_script"/>
+                <xsl:with-param name="script_codes"
+                    select="eac:o_language1_script_code | eac:o_language2_script_code | eac:o_language3_script_code"/>
+                <xsl:with-param name="address_line1" select="eac:o_address1"/>
+                <xsl:with-param name="address_line2" select="eac:o_address2"/>
+                <xsl:with-param name="city" select="eac:o_city"/>
+                <xsl:with-param name="state" select="eac:o_state"/>
+                <xsl:with-param name="postal_code" select="eac:o_state"/>
+                <xsl:with-param name="country" select="eac:o_country"/>
+                <xsl:with-param name="url" select="eac:o_URL"/>
+                <xsl:with-param name="phone" select="eac:o_phone"/>
+                <xsl:with-param name="email_address" select="eac:o_email_address"/>
+                <xsl:with-param name="start_date" select="eac:exist_date1"/>
+                <xsl:with-param name="end_date" select="eac:exist_date2"/>
+            </xsl:call-template>
         </xsl:for-each>
     </xsl:template>
-    <!-- EAC relationships-->
+    <!-- EAC relationships -->
     <xsl:template name="relations">
-        <xsl:if test="eac:o_parent_org/text()">
-            <relations xmlns="urn:isbn:1-931666-33-4">
-                <cpfRelation cpfRelationType="hierarchical-parent">
-                    <relationEntry>
-                        <xsl:value-of select="eac:o_parent_org"/>
-                    </relationEntry>
-                </cpfRelation>
-            </relations>
-        </xsl:if>
-    </xsl:template>
-    <!--EAC Control section-->
-    <xsl:template name="control">
-        <control xmlns="urn:isbn:1-931666-33-4">
-            <recordId>
-                <xsl:value-of select="eac:organizationID"/>
-            </recordId>
-            <maintenanceStatus>
-                <xsl:value-of select="eac:o_maintenanceStatus"/>
-            </maintenanceStatus>
-            <publicationStatus>
-                <xsl:value-of select="eac:o_publicationStatus"/>
-            </publicationStatus>
-            <maintenanceAgency>
-                <agencyName>
-                    <xsl:value-of select="eac:o_maintenance_agency"/>
-                </agencyName>
-            </maintenanceAgency>
-            <maintenanceHistory>
-                <xsl:if test="eac:o_eventDateTime1/text()">
-                    <maintenanceEvent>
-                        <eventType>created</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:o_eventDateTime1"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <!-- assuming all agents are human as the data does not seem to specify-->
-                        <agent>
-                            <xsl:value-of select="eac:o_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Created</eventDescription>
-                        <!-- eventDateTime1 corresponds to creation according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-                <xsl:if test="eac:o_eventDateTime2/text()">
-                    <maintenanceEvent>
-                        <eventType>revised</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:o_eventDateTime2"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <agent>
-                            <xsl:value-of select="eac:o_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Edited</eventDescription>
-                        <!-- eventDateTime2 corresponds to editing according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-                <xsl:if test="eac:o_eventDateTime3/text()">
-                    <maintenanceEvent>
-                        <eventType>derived</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:o_eventDateTime3"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <agent>
-                            <xsl:value-of select="eac:o_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Harvested</eventDescription>
-                        <!-- eventDateTime3 corresponds to Harvesting according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-            </maintenanceHistory>
-            <sources>
-                <source>
-                    <xsl:for-each select="eac:o_source[normalize-space(text())]">
-                        <sourceEntry>
-                            <xsl:value-of select="text()"/>
-                        </sourceEntry>
-                    </xsl:for-each>
-                </source>
-            </sources>
-        </control>
-    </xsl:template>
-    <!-- EAC description section-->
-    <xsl:template name="main">
-        <cpfDescription xmlns="urn:isbn:1-931666-33-4">
-            <identity>
-                <entityId>
-                    <xsl:value-of select="eac:organizationID"/>
-                </entityId>
-                <entityType>corporateBody</entityType>
-                <nameEntry localType="primary">
-                    <part>
-                        <xsl:value-of select="eac:o_primary_name"/>
-                    </part>
-                </nameEntry>
-                <xsl:if test="eac:org_abbreviation/text()">
-                    <nameEntry localType="abbreviation">
-                        <part>
-                            <xsl:value-of select="eac:org_abbreviation"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-                <xsl:if test="eac:o_alt_name1/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:o_alt_name1"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-                <xsl:if test="eac:o_alt_name2/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:o_alt_name2"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-                <xsl:if test="eac:o_alt_name3/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:o_alt_name3"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-            </identity>
-            <description>
-                <xsl:if test="eac:o_exist_date1/text()">
-                    <existDates>
-                        <dateRange>
-                            <fromDate>
-                                <xsl:value-of select="eac:o_exist_date1"/>
-                            </fromDate>
-                            <!--based on the supplemental spreadsheet these are correct but looking at the data they seem backwards-->
-                            <toDate>
-                                <xsl:value-of select="eac:o_exist_date2"/>
-                            </toDate>
-                        </dateRange>
-                    </existDates>
-                </xsl:if>
-                <places>
-                    <place>
-                        <address>
-                            <xsl:if test="eac:o_address1/text()">
-                                <addressLine localType="line1">
-                                    <xsl:value-of select="eac:o_address1"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_address2/text()">
-                                <addressLine localType="line2">
-                                    <xsl:value-of select="eac:o_address2"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_city/text()">
-                                <addressLine localType="city">
-                                    <xsl:value-of select="eac:o_city"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_state/text()">
-                                <addressLine localType="state">
-                                    <xsl:value-of select="eac:o_state"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_postalcode/text()">
-                                <addressLine localType="postalcode">
-                                    <xsl:value-of select="eac:o_postalcode"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_country/text()">
-                                <addressLine localType="country">
-                                    <xsl:value-of select="eac:o_country"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_phone/text()">
-                                <addressLine localType="phone">
-                                    <xsl:value-of select="eac:o_phone"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_email_address/text()">
-                                <addressLine localType="email">
-                                    <xsl:value-of select="eac:o_email_address"/>
-                                </addressLine>
-                            </xsl:if>
-                            <xsl:if test="eac:o_URL/text()">
-                                <addressLine localType="url">
-                                    <xsl:value-of select="eac:o_URL"/>
-                                </addressLine>
-                            </xsl:if>
-                        </address>
-                    </place>
-                </places>
-                <languagesUsed>
-                    <xsl:if test="normalize-space(eac:o_language1)">
-                        <languageUsed>
-                            <language languageCode="{eac:o_language1_code}">
-                                <xsl:value-of select="eac:o_language1"/>
-                            </language>
-                            <script scriptCode="{eac:o_language1_script_code}"><xsl:value-of select="eac:o_language1_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                    <xsl:if test="normalize-space(eac:o_language2)">
-                        <languageUsed>
-                            <language languageCode="{eac:o_language2_code}">
-                                <xsl:value-of select="eac:o_language2"/>
-                            </language>
-                            <script scriptCode="{eac:o_language2_script_code}"><xsl:value-of select="eac:o_language2_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                    <xsl:if test="normalize-space(eac:o_language3)">
-                        <languageUsed>
-                            <language languageCode="{eac:o_language3_code}">
-                                <xsl:value-of select="eac:o_language3"/>
-                            </language>
-                            <script scriptCode="{eac:o_language3_script_code}"><xsl:value-of select="eac:o_language3_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                </languagesUsed>
-                <biogHist>
-                    <xsl:if test="eac:o_description/text()">
-                        <p>
-                            <xsl:value-of select="eac:o_description"/>
-                        </p>
-                    </xsl:if>
-                </biogHist>
-            </description>
-            <xsl:call-template name="relations"/>
-        </cpfDescription>
+        <xsl:variable name="parent_org" select="normalize-space(eac:o_parent_org)"/>
+        <relations>
+            <xsl:if test="$parent_org">
+                <xsl:call-template name="cpfRelation">
+                    <xsl:with-param name="type">hierarchical-parent</xsl:with-param>
+                    <xsl:with-param name="localType">parent organization</xsl:with-param>
+                    <xsl:with-param name="value" select="$parent_org"/>
+                </xsl:call-template>
+            </xsl:if>
+        </relations>
     </xsl:template>
 </xsl:stylesheet>

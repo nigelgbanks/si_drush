@@ -24,13 +24,13 @@
                 <xsl:with-param name="alternative_names"
                     select="eac:p_alt_name1 | eac:p_alt_name3 | eac:p_alt_name3"/>
                 <xsl:with-param name="description" select="eac:p_bio_history"/>
-                <xsl:with-param name="languages" select="eac:p_language1 | eac:p_language2"/>
+                <xsl:with-param name="languages" select="eac:p_language1 | eac:p_language2 | eac:p_language3"/>
                 <xsl:with-param name="language_codes"
-                    select="eac:p_language1_code | eac:p_language2_code"/>
+                    select="eac:p_language1_code | eac:p_language2_code | eac:p_language3_code"/>
                 <xsl:with-param name="scripts"
-                    select="eac:p_language1_script | eac:p_language2_script"/>
+                    select="eac:p_language1_script | eac:p_language2_script | eac:p_language3_script"/>
                 <xsl:with-param name="script_codes"
-                    select="eac:p_language1_script_code | eac:p_language2_script_code"/>
+                    select="eac:p_language1_script_code | eac:p_language2_script_code | eac:p_language3_script_code"/>
                 <xsl:with-param name="address_line1" select="eac:p_address1"/>
                 <xsl:with-param name="address_line2" select="eac:p_address2"/>
                 <xsl:with-param name="city" select="eac:p_city"/>
