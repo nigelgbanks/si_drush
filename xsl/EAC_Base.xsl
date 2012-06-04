@@ -598,7 +598,7 @@
         <xsl:param name="language_codes"/>
         <xsl:param name="scripts"/>
         <xsl:param name="script_codes"/>
-        <xsl:if test="$languages[normalize-space(text())]">
+        <xsl:if test="$languages[normalize-space(text())] and $language_codes[normalize-space(text())] and $scripts[normalize-space(text())] and $script_codes[normalize-space(text())]">
            <languagesUsed>
                <xsl:for-each select="$languages">
                    <xsl:call-template name="languageUsed">
@@ -617,7 +617,7 @@
         <xsl:param name="language_code"/>
         <xsl:param name="script"/>
         <xsl:param name="script_code"/>
-        <xsl:if test="normalize-space($language)">
+        <xsl:if test="normalize-space($language) and normalize-space($language_code) and normalize-space($script) and normalize-space($script_code)">
             <languageUsed>
                 <language languageCode="{$language_code}">
                     <xsl:value-of select="$language"/>
