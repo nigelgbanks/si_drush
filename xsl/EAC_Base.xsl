@@ -329,9 +329,9 @@
         <xsl:param name="abbrivated_name"/>
         <xsl:param name="alternative_names"/>
         <identity>
-            <entityId>
-                <xsl:value-of select="$id"/>
-            </entityId>
+            <xsl:call-template name="entityId">
+                <xsl:with-param name="id" select="$id"/>
+            </xsl:call-template>
             <xsl:call-template name="entityType">
                 <xsl:with-param name="type" select="$type"/>
             </xsl:call-template>
@@ -345,6 +345,13 @@
                 <xsl:with-param name="alternative_names" select="$alternative_names"/>
             </xsl:call-template>
         </identity>
+    </xsl:template>
+    <!-- Entity Id -->
+    <xsl:template name="entityId">
+        <xsl:param name="id"/>
+        <entityId>
+            <xsl:value-of select="$id"/>
+        </entityId>
     </xsl:template>
     <!-- Entity Type -->
     <xsl:template name="entityType">
@@ -488,19 +495,21 @@
         <xsl:param name="url"/>
         <xsl:param name="phone"/>
         <xsl:param name="email_address"/>
-        <place>
-            <xsl:call-template name="address">
-                <xsl:with-param name="address_line1" select="$address_line1"/>
-                <xsl:with-param name="address_line2" select="$address_line2"/>
-                <xsl:with-param name="city" select="$city"/>
-                <xsl:with-param name="state" select="$state"/>
-                <xsl:with-param name="postal_code" select="$postal_code"/>
-                <xsl:with-param name="country" select="$country"/>
-                <xsl:with-param name="url" select="$url"/>
-                <xsl:with-param name="phone" select="$phone"/>
-                <xsl:with-param name="email_address" select="$email_address"/>
-            </xsl:call-template>
-        </place>
+        <xsl:if test="normalize-space($address_line1 | $address_line2 | $city | $state | $postal_code | $country | $url | $email_address)">
+           <place>
+               <xsl:call-template name="address">
+                   <xsl:with-param name="address_line1" select="$address_line1"/>
+                   <xsl:with-param name="address_line2" select="$address_line2"/>
+                   <xsl:with-param name="city" select="$city"/>
+                   <xsl:with-param name="state" select="$state"/>
+                   <xsl:with-param name="postal_code" select="$postal_code"/>
+                   <xsl:with-param name="country" select="$country"/>
+                   <xsl:with-param name="url" select="$url"/>
+                   <xsl:with-param name="phone" select="$phone"/>
+                   <xsl:with-param name="email_address" select="$email_address"/>
+               </xsl:call-template>
+           </place>
+        </xsl:if>
     </xsl:template>
     <!-- Address -->
     <xsl:template name="address">
@@ -556,8 +565,8 @@
     <xsl:template name="addressLine">
         <xsl:param name="type"/>
         <xsl:param name="value"/>
-        <xsl:if test="$value">
-            <addressLine localType="$type">
+        <xsl:if test="$value/text()">
+            <addressLine localType="{$type}">
                 <xsl:value-of select="$value"/>
             </addressLine>
         </xsl:if>

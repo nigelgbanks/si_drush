@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--takes data exported from Smithsonian's filemaker db and transforms to EAC.  This xslt works with the filemaker person records-->
-<xsl:stylesheet version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+<xsl:stylesheet version="1.0"
     xmlns="urn:isbn:1-931666-33-4"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:eac="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="eac">
     <xsl:import href="EAC_Base.xsl"/>
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
@@ -11,6 +12,7 @@
         <xsl:for-each select="//eac:ROW">
             <xsl:call-template name="eaccpf">
                 <xsl:with-param name="id" select="eac:expeditionID"/>
+                <xsl:with-param name="type">corporateBody</xsl:with-param>
                 <xsl:with-param name="maintenance_status" select="eac:e_maintenanceStatus"/>
                 <xsl:with-param name="publication_status" select="eac:e_publicationStatus"/>
                 <xsl:with-param name="agency" select="eac:e_maintenance_agency"/>
@@ -18,7 +20,6 @@
                 <xsl:with-param name="edited" select="eac:e_eventDateTime2"/>
                 <xsl:with-param name="harvested" select="eac:e_eventDateTime3"/>
                 <xsl:with-param name="sources" select="eac:e_source/eac:DATA[normalize-space(text())]"/>
-                <xsl:with-param name="type">corporateBody</xsl:with-param>
                 <xsl:with-param name="primary_name" select="eac:e_primary_name"/>
                 <xsl:with-param name="alternative_names" select="eac:e_alt_name1 | eac:e_alt_name3 | eac:e_alt_name3"/>
             </xsl:call-template>

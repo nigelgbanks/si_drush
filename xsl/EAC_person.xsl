@@ -1,274 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--takes data exported from Smithsonian's filemaker db and transforms to EAC.  This xslt works with the filemaker person records-->
-<xsl:stylesheet version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<xsl:stylesheet version="1.0" xmlns="urn:isbn:1-931666-33-4"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:eac="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="eac">
+    <xsl:import href="EAC_Base.xsl"/>
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
+    <!-- Entry Point -->
     <xsl:template match="/">
         <xsl:for-each select="//eac:ROW">
-            <eac-cpf xmlns="urn:isbn:1-931666-33-4"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                xsi:schemaLocation="urn:isbn:1-931666-33-4 http://eac.staatsbibliothek-berlin.de/schema/cpf.xsd">
-                <xsl:call-template name="control"/>
-                <xsl:call-template name="main"/>
-            </eac-cpf>
+            <xsl:call-template name="eaccpf">
+                <xsl:with-param name="id" select="eac:personID"/>
+                <xsl:with-param name="type">person</xsl:with-param>
+                <xsl:with-param name="maintenance_status" select="eac:p_maintenanceStatus"/>
+                <xsl:with-param name="publication_status" select="eac:p_publicationStatus"/>
+                <xsl:with-param name="agency" select="eac:p_maintenance_agency"/>
+                <xsl:with-param name="created" select="eac:p_eventDateTime1"/>
+                <xsl:with-param name="edited" select="eac:p_eventDateTimet2"/>
+                <xsl:with-param name="harvested" select="eac:p_eventDateTime3"/>
+                <xsl:with-param name="sources"
+                    select="eac:p_source/eac:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="primary_name" select="eac:p_primary_name"/>
+                <xsl:with-param name="alternative_names"
+                    select="eac:p_alt_name1 | eac:p_alt_name3 | eac:p_alt_name3"/>
+                <xsl:with-param name="description" select="eac:p_bio_history"/>
+                <xsl:with-param name="languages" select="eac:p_language1 | eac:p_language2"/>
+                <xsl:with-param name="language_codes"
+                    select="eac:p_language1_code | eac:p_language2_code"/>
+                <xsl:with-param name="scripts"
+                    select="eac:p_language1_script | eac:p_language2_script"/>
+                <xsl:with-param name="script_codes"
+                    select="eac:p_language1_script_code | eac:p_language2_script_code"/>
+                <xsl:with-param name="address_line1" select="eac:p_address1"/>
+                <xsl:with-param name="address_line2" select="eac:p_address2"/>
+                <xsl:with-param name="city" select="eac:p_city"/>
+                <xsl:with-param name="state" select="eac:p_state"/>
+                <xsl:with-param name="postal_code" select="eac:p_state"/>
+                <xsl:with-param name="country" select="eac:p_country"/>
+                <xsl:with-param name="url" select="eac:p_URL"/>
+                <xsl:with-param name="phone" select="eac:p_phone"/>
+                <xsl:with-param name="email_address" select="eac:p_email_address"/>
+                <xsl:with-param name="start_date" select="eac:p_exist_date_b"/>
+                <xsl:with-param name="end_date" select="eac:p_exist_date_d"/>
+                <xsl:with-param name="occupations" select="eac:p_occupation/eac:DATA[normalize-space(text())]"/>
+            </xsl:call-template>
         </xsl:for-each>
     </xsl:template>
-    <!-- EAC relationships-->
+    <!-- Identity -->
+    <xsl:template name="identity">
+        <xsl:param name="id"/>
+        <xsl:param name="type"/>
+        <xsl:param name="primary_name"/>
+        <xsl:param name="alternative_names"/>
+        <identity>
+            <xsl:call-template name="entityId">
+                <xsl:with-param name="id" select="$id"/>
+            </xsl:call-template>
+            <xsl:call-template name="entityType">
+                <xsl:with-param name="type" select="$type"/>
+            </xsl:call-template>
+            <xsl:call-template name="primaryName">
+                <xsl:with-param name="primary_name" select="$primary_name"/>
+            </xsl:call-template>
+            <xsl:call-template name="fullName"/>
+            <xsl:call-template name="alternativeNames">
+                <xsl:with-param name="alternative_names" select="$alternative_names"/>
+            </xsl:call-template>
+        </identity>
+    </xsl:template>
+    <!-- Full Name -->
+    <xsl:template name="fullName">
+        <nameEntry localType="full">
+            <part localType="forename">
+                <xsl:value-of select="eac:p_firstname"/>
+            </part>
+            <part localType="middle">
+                <xsl:value-of select="eac:p_middle_initial"/>
+            </part>
+            <part localType="surname">
+                <xsl:value-of select="eac:p_lastname"/>
+            </part>
+        </nameEntry>
+    </xsl:template>
+    <!-- EAC relationships -->
     <xsl:template name="relations">
-        <relations xmlns="urn:isbn:1-931666-33-4">
-            <xsl:if test="eac:p_related_entity1/text()">
-                <cpfRelation>
-                    <relationEntry>
-                        <xsl:value-of select="eac:p_related_entity1"/>
-                    </relationEntry>
-                    <descriptiveNote>
-                        <p>
-                            <xsl:value-of select="eac:p_related_entity1_description"/>
-                        </p>
-                    </descriptiveNote>
-                </cpfRelation>
+        <xsl:variable name="entity1" select="normalize-space(eac:p_related_entity1)"/>
+        <xsl:variable name="entity2" select="normalize-space(eac:p_related_entity2)"/>
+        <xsl:variable name="entity3" select="normalize-space(eac:p_related_entity3)"/>
+        <xsl:variable name="materials" select="eac:p_related_material/eac:DATA[normalize-space(text())]"/>
+        <relations>
+            <xsl:if test="$entity1">
+                <xsl:call-template name="cpfRelation">
+                    <xsl:with-param name="type">associative</xsl:with-param>
+                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="value" select="$entity1"/>
+                    <xsl:with-param name="description" select="eac:p_related_entity1_description"/>
+                </xsl:call-template>
             </xsl:if>
-            <xsl:if test="eac:p_related_entity2/text()">
-                <cpfRelation>
-                    <relationEntry>
-                        <xsl:value-of select="eac:p_related_entity2"/>
-                    </relationEntry>
-                    <descriptiveNote>
-                        <p>
-                            <xsl:value-of select="eac:p_related_entity2_description"/>
-                        </p>
-                    </descriptiveNote>
-                </cpfRelation>
+            <xsl:if test="$entity2">
+                <xsl:call-template name="cpfRelation">
+                    <xsl:with-param name="type">associative</xsl:with-param>
+                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="value" select="$entity2"/>
+                    <xsl:with-param name="description" select="eac:p_related_entity2_description"/>
+                </xsl:call-template>
             </xsl:if>
-            <xsl:if test="eac:p_related_entity3/text()">
-                <cpfRelation>
-                    <relationEntry>
-                        <xsl:value-of select="eac:p_related_entity3"/>
-                    </relationEntry>
-                    <descriptiveNote>
-                        <p>
-                            <xsl:value-of select="eac:p_related_entity3_description"/>
-                        </p>
-                    </descriptiveNote>
-                </cpfRelation>
+            <xsl:if test="$entity3">
+                <xsl:call-template name="cpfRelation">
+                    <xsl:with-param name="type">associative</xsl:with-param>
+                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="value" select="$entity3"/>
+                    <xsl:with-param name="description" select="eac:p_related_entity3_description"/>
+                </xsl:call-template>
             </xsl:if>
-            <xsl:if test="eac:p_related_material/text()">
-                <resourceRelation>
-                    <xsl:for-each select="eac:p_related_material/eac:DATA[normalize-space(text())]">
-                        <relationEntry>
-                            <xsl:value-of select="text()"/>
-                        </relationEntry>
-                    </xsl:for-each>
-                </resourceRelation>
-            </xsl:if>
+            <xsl:for-each select="$materials">
+                <xsl:call-template name="resourceRelation">
+                    <xsl:with-param name="type">other</xsl:with-param>
+                    <xsl:with-param name="localType">material</xsl:with-param>
+                    <xsl:with-param name="value" select="."/>
+                </xsl:call-template>
+            </xsl:for-each>
         </relations>
-    </xsl:template>
-    <!--EAC Control section-->
-    <xsl:template name="control">
-        <control xmlns="urn:isbn:1-931666-33-4">
-            <recordId>
-                <xsl:value-of select="eac:personID"/>
-            </recordId>
-            <maintenanceStatus>
-                <xsl:value-of select="eac:p_maintenanceStatus"/>
-            </maintenanceStatus>
-            <publicationStatus>
-                <xsl:value-of select="eac:p_publicationStatus"/>
-            </publicationStatus>
-            <maintenanceAgency>
-                <agencyName>
-                    <xsl:value-of select="eac:p_maintenance_agency"/>
-                </agencyName>
-            </maintenanceAgency>
-            <maintenanceHistory>
-                <xsl:if test="eac:p_eventDateTime1/text()">
-                    <maintenanceEvent>
-                        <eventType>created</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:p_eventDateTime1"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <!-- assuming all agents are human as the data does not seem to specify-->
-                        <agent>
-                            <xsl:value-of select="eac:p_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Created</eventDescription>
-                        <!-- eventDateTime1 corresponds to creation according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-                <xsl:if test="eac:p_eventDateTimet2/text()">
-                    <maintenanceEvent>
-                        <eventType>revised</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:p_eventDateTimet2"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <!-- assuming all agents are human as the data does not seem to specify-->
-                        <agent>
-                            <xsl:value-of select="eac:p_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Edited</eventDescription>
-                        <!-- eventDateTime2 corresponds to editing according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-                <xsl:if test="eac:p_eventDateTime3/text()">
-                    <maintenanceEvent>
-                        <eventType>derived</eventType>
-                        <eventDateTime>
-                            <xsl:value-of select="eac:p_eventDateTime3"/>
-                        </eventDateTime>
-                        <agentType>human</agentType>
-                        <!-- assuming all agents are human as the data does not seem to specify-->
-                        <agent>
-                            <xsl:value-of select="eac:p_maintenance_history_agent"/>
-                        </agent>
-                        <eventDescription>Record Harvested</eventDescription>
-                        <!-- eventDateTime3 corresponds to Harvesting according to supplemental spreadsheet provided by Smithsonian-->
-                    </maintenanceEvent>
-                </xsl:if>
-            </maintenanceHistory>
-            <sources>
-                <source>
-                    <xsl:for-each select="eac:p_source[normalize-space(text())]">
-                        <sourceEntry>
-                            <xsl:value-of select="text()"/>
-                        </sourceEntry>
-                    </xsl:for-each>
-                </source>
-            </sources>
-        </control>
-    </xsl:template>
-    <!-- EAC description section-->
-    <xsl:template name="main">
-        <cpfDescription xmlns="urn:isbn:1-931666-33-4">
-            <identity>
-                <entityId>
-                    <xsl:value-of select="eac:personID"/>
-                </entityId>
-                <entityType>person</entityType>
-                <nameEntry localType="primary">
-                    <part localType="fullname">
-                        <xsl:value-of select="eac:p_primary_name"/>
-                    </part>
-                </nameEntry>
-                <nameEntry>
-                    <part localType="forename">
-                        <xsl:value-of select="eac:p_firstname"/>
-                    </part>
-                    <part localType="middle">
-                        <xsl:value-of select="eac:p_middle_initial"/>
-                    </part>
-                    <part localType="surname">
-                        <xsl:value-of select="eac:p_lastname"/>
-                    </part>
-                </nameEntry>
-                <xsl:if test="eac:p_alt_name1/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:p_alt_name1"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-                <xsl:if test="eac:p_alt_name2/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:p_alt_name2"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-                <xsl:if test="eac:p_alt_name3/text()">
-                    <nameEntry localType="alt">
-                        <part>
-                            <xsl:value-of select="eac:p_alt_name3"/>
-                        </part>
-                    </nameEntry>
-                </xsl:if>
-            </identity>
-            <description>
-                <existDates>
-                    <dateRange>
-                        <fromDate>
-                            <xsl:value-of select="eac:p_exist_date_b"/>
-                        </fromDate>
-                        <!--based on the supplemental spreadsheet these are correct but looking at the data they seem backwards-->
-                        <toDate>
-                            <xsl:value-of select="eac:p_exist_date_d"/>
-                        </toDate>
-                    </dateRange>
-                </existDates>
-                <xsl:for-each select="eac:p_occupation/eac:DATA[normalize-space(text())]">
-                    <occupation>
-                        <term>
-                            <xsl:value-of select="text()"/>
-                        </term>
-                    </occupation>
-                </xsl:for-each>
-                <place>
-                    <address>
-                        <xsl:if test="eac:p_address1">
-                            <addressLine localType="line1"><xsl:value-of select="eac:p_address1"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_address2">
-                           <addressLine localType="line2"><xsl:value-of select="eac:p_address2"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_city">
-                            <addressLine localType="city"><xsl:value-of select="eac:p_city"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_state">
-                            <addressLine localType="state"><xsl:value-of select="eac:p_state"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_postalcode">
-                            <addressLine localType="postalcode"><xsl:value-of select="eac:p_postalcode"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_country">
-                            <addressLine localType="country"><xsl:value-of select="eac:p_country"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_URL">
-                            <addressLine localType="url"><xsl:value-of select="eac:p_URL"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_phone">
-                            <addressLine localType="phone"><xsl:value-of select="eac:p_phone"/></addressLine>
-                        </xsl:if>
-                        <xsl:if test="eac:p_email_address">
-                            <addressLine localType="email"><xsl:value-of select="eac:p_email_address"/></addressLine>
-                        </xsl:if>
-                    </address>
-                </place>
-                <languagesUsed>
-                    <xsl:if test="normalize-space(eac:p_language1)">
-                        <languageUsed>
-                            <language languageCode="{eac:p_language1_code}">
-                                <xsl:value-of select="eac:p_language1"/>
-                            </language>
-                            <script scriptCode="{eac:p_language1_script_code}"><xsl:value-of select="eac:p_language1_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                    <xsl:if test="normalize-space(eac:p_language2)">
-                        <languageUsed>
-                            <language languageCode="{eac:p_language2_code}">
-                                <xsl:value-of select="eac:p_language2"/>
-                            </language>
-                            <script scriptCode="{eac:p_language2_script_code}"><xsl:value-of select="eac:p_language2_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                    <xsl:if test="normalize-space(eac:p_language3)">
-                        <languageUsed>
-                            <language languageCode="{eac:p_language3_code}">
-                                <xsl:value-of select="eac:p_language3"/>
-                            </language>
-                            <script scriptCode="{eac:p_language3_script_code}"><xsl:value-of select="eac:p_language3_script"/></script>
-                        </languageUsed>
-                    </xsl:if>
-                </languagesUsed>
-                <biogHist>
-                    <p>
-                        <xsl:value-of select="normalize-space(eac:p_bio_history)"/>
-                    </p>
-                </biogHist>
-            </description>
-            <xsl:call-template name="relations"/>
-        </cpfDescription>
     </xsl:template>
 </xsl:stylesheet>
