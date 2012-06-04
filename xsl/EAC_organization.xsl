@@ -99,7 +99,6 @@
                 </source>
             </sources>
         </control>
-
     </xsl:template>
     <!-- EAC description section-->
     <xsl:template name="main">
@@ -245,5 +244,4 @@
             <xsl:call-template name="relations"/>
         </cpfDescription>
     </xsl:template>
-
 </xsl:stylesheet>

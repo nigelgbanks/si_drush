@@ -25,13 +25,13 @@
                                 <dct_modified><xsl:value-of select="fmp:c_record_edited_date"/></dct_modified>
                                 <dct_harvested><xsl:value-of select="fmp:c_record_harvest_date"/></dct_harvested>
                             </AboutThisRecord>            
-                            <DesciptiveGroup>
+                            <DescriptiveGroup>
                                 <dc_title><xsl:value-of select="fmp:c_primary_name"/></dc_title>
                                 <dc_alternative_title><xsl:value-of select="fmp:c_alt_name"/></dc_alternative_title>
                                 <dc_description><xsl:value-of select="fmp:c_descr"/></dc_description>
                                 <notes><xsl:value-of select="fmp:c_notes"/></notes>
                                 <dc_extent><xsl:value-of select="fmp:c_extent"/></dc_extent>
-                            </DesciptiveGroup>       
+                            </DescriptiveGroup>       
                             <AdministrativeGroup>
                                 <FormationPeriod>
                                     <xsl:value-of select="fmp:c_FormationPeriod"/>
