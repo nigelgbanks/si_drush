@@ -1,48 +1,62 @@
 <?php
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Batch ingest script for Smithsonian Fieldbook data.
  */
-
-
 define('EAC_PERSON_ID_NS', 'info:islandora/islandora-system:def/eacPersonId#');
 define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditionId#');
 define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
 define('NCD_COLLECTION_ID_NS', 'info:islandora/islandora-system:def/ncdCollectionId#');
 
+/**
+ * Defines the drush command for ingesting Fieldbook data.
+ */
 function si_batch_ingest_drush_command() {
-  $items = array();
-
-  $items['si_batch_ingest'] = array(
-    'callback' => 'drush_si_batch_ingest',
-    'description' => "reads an filemaker pro xml dump and creates fedora objects.  Valid types are person, expedition, organization, item and collection",
-    'arguments' => array(
-      'collection_pid' => 'The pid of the collection object, this is the collection the new objects will be related to',
-      'relationship' => 'The relationship the objects have to the collection object.  For example isMemberOf is a common relationship.',
-      'input_file' => 'The path to the files (absolute file system path, /var/www/http/drupal/sites/default/files).',
-      'input_xsl' => 'The path to the xsl file used to tranform the input_file',
-      'url_to_tn' => 'The url to the default thumbnail for this type of object',
-      'type' => 'the type of object'
+  return array(
+    'si_batch_ingest_all' => array(
+      'callback' => 'drush_si_batch_ingest_all',
+      'description' => "Ingests all fieldbook related data",
+      'examples' => array(
+        'drush si_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file url_for_tn type',
+      ),
+      'aliases' => array('sibatch', 'sibatchingest'),
+      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
     ),
-    'examples' => array(
-      'drush si_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file url_for_tn type',
-    ),
-    'aliases' => array('sibatch'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // we can pass in users id on the command line using drush -u.
+    'si_batch_ingest' => array(
+      'callback' => 'drush_si_batch_ingest',
+      'description' => "reads an filemaker pro xml dump and creates fedora objects.  Valid types are person, expedition, organization, item and collection",
+      'arguments' => array(
+        'collection_pid' => 'The pid of the collection object, this is the collection the new objects will be related to',
+        'relationship' => 'The relationship the objects have to the collection object.  For example isMemberOf is a common relationship.',
+        'input_file' => 'The path to the files (absolute file system path, /var/www/http/drupal/sites/default/files).',
+        'input_xsl' => 'The path to the xsl file used to tranform the input_file',
+        'url_to_tn' => 'The url to the default thumbnail for this type of object',
+        'type' => 'the type of object'
+      ),
+      'examples' => array(
+        'drush si_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file url_for_tn type',
+      ),
+      'aliases' => array('sibatch', 'sibatchingest'),
+      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
+    )
   );
-
-  return $items;
 }
 
 /**
+ * Callback for the batch ingest command.
  *
- * @param <type> $collection_pid
- * @param <type> $relationship
- * @param <type> $input_file
- * @param <type> $input_xsl
- * @param <type> $url_to_tn
- * @return <type>
+ * @param string $collection_pid
+ *   The collection to ingest into.
+ * @param string $relationship
+ *   The relationship between the Object being ingested and the given collection.
+ * @param string $input_file
+ *   The Filemaker Pro XML Dump file. The path must be absolute.
+ * @param string $input_xsl
+ *   The XSL that will be used to generated metadata for each Object. The path must be absolute.
+ * @param string $url_to_tn
+ *   The URL to the default thumbnail to use with the ingested Objects
+ * @param string $type
+ *   The type of Object
  */
 function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
   module_load_include('inc', 'fedora_repository', 'CollectionClass');
@@ -77,11 +91,11 @@ function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $inp
     drush_print("\n no object type specified");
     return;
   }
-
   si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type);
 }
 
 /**
+ *
  *
  * @param string $collection_pid
  * @param string $relationship
@@ -408,7 +422,7 @@ function si_update_mods_creator(&$xml) {
 }
 
 /**
- * 
+ *
  * @param string $collection_pid
  * @param string $relationship
  * @param string $ncd_xml

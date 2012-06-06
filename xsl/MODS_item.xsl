@@ -7,6 +7,7 @@
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:fmp="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="fmp">
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
+    <xsl:include href="Utils.xsl"/>
     <!-- Entry Point -->
     <xsl:template match="/">
         <xsl:for-each select="//fmp:ROW">
@@ -302,10 +303,14 @@
                 <xsl:value-of select="fmp:i_record_content_source"/>
             </recordContentSource>
             <recordCreationDate>
-                <xsl:value-of select="fmp:i_record_creation_date"/>
+                <xsl:call-template name="normalizeDate">
+                    <xsl:with-param name="date" select="fmp:i_record_creation_date"/>
+                </xsl:call-template>
             </recordCreationDate>
             <recordChangeDate>
-                <xsl:value-of select="fmp:i_record_change_date"/>
+                <xsl:call-template name="normalizeDate">
+                    <xsl:with-param name="date" select="fmp:i_record_change_date"/>
+                </xsl:call-template>
             </recordChangeDate>
         </recordInfo>
     </xsl:template>
@@ -323,13 +328,17 @@
                 <xsl:call-template name="dateQualifier">
                     <xsl:with-param name="value" select="$qualifier"/>
                 </xsl:call-template>
-                <xsl:value-of select="fmp:i_date1"/>
+                <xsl:call-template name="modsNormalizeDate">
+                    <xsl:with-param name="date" select="fmp:i_date1"/>
+                </xsl:call-template>
             </dateOther>
             <dateOther type="range" point="end">
                 <xsl:call-template name="dateQualifier">
                     <xsl:with-param name="value" select="$qualifier"/>
                 </xsl:call-template>
-                <xsl:value-of select="fmp:i_date2"/>
+                <xsl:call-template name="modsNormalizeDate">
+                    <xsl:with-param name="date" select="fmp:i_date2"/>
+                </xsl:call-template>
             </dateOther>
         </originInfo>
     </xsl:template>
@@ -496,6 +505,16 @@
                 <xsl:with-param name="input" select="$after"/>
                 <xsl:with-param name="index" select="$index -1"/>
             </xsl:call-template>
+        </xsl:if>
+    </xsl:template>
+    <!-- Normalizes the dates used in dateOther -->
+    <xsl:template name="modsNormalizeDate">
+        <xsl:param name="date"/>
+        <xsl:if test="8 > string-length($date)">
+            <xsl:value-of select="$date"/>
+        </xsl:if>
+        <xsl:if test="string-length($date) = 8">
+            <xsl:value-of select="concat(substring($date, 1, 4), '-', substring($date, 5, 2), '-', substring($date, 7, 2))"/>
         </xsl:if>
     </xsl:template>
 </xsl:stylesheet>

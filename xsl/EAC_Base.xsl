@@ -7,6 +7,7 @@
     exclude-result-prefixes="eac"
     extension-element-prefixes="date">
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
+    <xsl:include href="Utils.xsl"/>
     <!-- EAC-CPF: Generates a EAC-CPF document for each row in the FileMaker Exported File -->
     <xsl:template name="eaccpf">
         <xsl:param name="id"/>
@@ -229,13 +230,18 @@
         <xsl:param name="date"/>
         <xsl:param name="agency"/>
         <xsl:param name="description"/>
+        <xsl:param name="normalized_date">
+            <xsl:call-template name="normalizeDate">
+                <xsl:with-param name="date" select="$date"/>
+            </xsl:call-template>
+        </xsl:param>
         <xsl:if test="normalize-space($date)">
             <maintenanceEvent>
                 <eventType>
                     <xsl:value-of select="$type"/>
                 </eventType>
                 <eventDateTime>
-                    <xsl:value-of select="$date"/>
+                    <xsl:value-of select="$normalized_date"/>
                 </eventDateTime>
                 <!-- Assuming all agents are human as the data does not seem to specify -->
                 <agentType>human</agentType>
