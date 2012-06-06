@@ -18,7 +18,14 @@
                 <xsl:with-param name="num" select="$_day"/>
             </xsl:call-template>
         </xsl:variable>
-        <xsl:value-of select="concat($year, '-', $month, '-', $day)"/>
+        <xsl:choose>
+            <xsl:when test="$year and $month and $day">
+                <xsl:value-of select="concat($year, '-', $month, '-', $day)"/>    
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$date"/>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
     <xsl:template name="normalizeDayOrMonth">
         <xsl:param name="num"/>
