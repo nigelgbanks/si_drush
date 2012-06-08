@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?><!-- This grammar has been deprecated - use FMPXMLRESULT instead -->
+<FMPDSORESULT xmlns="http://www.filemaker.com/fmpdsoresult">
+ <ERRORCODE>0</ERRORCODE>
+ <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
+ <LAYOUT>MODS -- Item Level</LAYOUT>
+ <ROW MODID="87" RECORDID="24">
+  <i_record_origin>parillal</i_record_origin>
+  <i_record_content_source>Smithsonian Institution Archives</i_record_content_source>
+  <i_record_creation_date>06—02—2011</i_record_creation_date>
+  <i_record_change_date>04—24—2012</i_record_change_date>
+  <itemID>MODSI24</itemID>
+  <i_title>
+   <DATA>Journal, 1853-1854</DATA>
+   <DATA/>
+  </i_title>
+  <i_alt_title/>
+  <i_title_type/>
+  <i_creator>
+   <DATA>EACP16</DATA>
+   <DATA>Maxon, William R. (William Ralph), 1877-1948 }} lcsh</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_creator>
+  <i_contributor>
+   <DATA>EACP6</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_contributor>
+  <i_collection>NCDC6</i_collection>
+  <i_date1>18530613</i_date1>
+  <i_date2>18541229</i_date2>
+  <i_date_range>1853-1854</i_date_range>
+  <i_date_qualifier/>
+  <i_location>Smithsonian Institution Archives</i_location>
+  <i_sublocation>Box 1 Folder 1</i_sublocation>
+  <i_physical_description>1 notebook</i_physical_description>
+  <i_access_condition>Many of SIA&apos;s holdings are located off-site, and advance notice is
+   recommended to consult a collection. Please email the SIA Reference Team at
+   osiaref@si.edu.</i_access_condition>
+  <i_href/>
+  <i_related_item>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_related_item>
+  <i_resource_type>text</i_resource_type>
+  <i_genre>
+   <DATA>Field notes }} aat</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_genre>
+  <i_abstract>The journal describes the weather, geology, botany, and zoology of the regions through
+   which Cooper passed while traveling with the Northern Pacific Railroad Survey. Pages are
+   numbered. Entries are dated. Journal entries describe sightings and descriptions of indigenous
+   wildlife and plant life, terrain of region, distance covered, survey participants, daily
+   activities, and specimens collected. Cooper will sometimes title a page with the location of the
+   journal entry. Also included are sketches of the route; an index of animal and plant specimens
+   collected; and a hand drawn map of the Oregon Territory, 1849, and the Columbia River, 1841. Maps
+   indicate elevations, campsites and dates, and vegetation present. Printed map is pasted to the
+   back of the notebook, and includes marking relating to the expedition. Locations include vicinity
+   of Cathlapotle River and Willapa River. </i_abstract>
+  <i_note/>
+  <i_language1>English</i_language1>
+  <i_language1_code>eng</i_language1_code>
+  <i_language1_script>Latin</i_language1_script>
+  <i_language1_script_code>Latn</i_language1_script_code>
+  <i_language2/>
+  <i_language2_code/>
+  <i_language2_script/>
+  <i_language2_script_code/>
+  <i_subject_topic>
+   <DATA>Botany }} lcsh</DATA>
+   <DATA>Geology }} lcsh</DATA>
+   <DATA>Zoology }} lcsh</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_subject_topic>
+  <i_subject_geographical>
+   <DATA>Columbia River }} tgn }} 2250934</DATA>
+   <DATA>Oregon Territory--History }} lcsh </DATA>
+   <DATA>Washington }} tgn }} 7007920</DATA>
+   <DATA>Oregon }} tgn }} 7007708</DATA>
+   <DATA>Idaho }} tgn }} 7007250</DATA>
+   <DATA>Montana }} tgn }} 7007524</DATA>
+   <DATA>Willapa }} tgn }} 1131809</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_subject_geographical>
+  <i_altID>SIA RU007067</i_altID>
+  <i_shelf_locator/>
+  <i_physical_location_website>http://siarchives.si.edu/</i_physical_location_website>
+  <i_expedition_name>
+   <DATA>EACE0045</DATA>
+   <DATA/>
+   <DATA/>
+  </i_expedition_name>
+  <i_vessel_name>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_vessel_name>
+  <i_subject_person>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </i_subject_person>
+  <i_subject_organization>
+   <DATA/>
+   <DATA/>
+  </i_subject_organization>
+ </ROW>
+</FMPDSORESULT>

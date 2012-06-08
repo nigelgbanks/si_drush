@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?><!-- This grammar has been deprecated - use FMPXMLRESULT instead -->
+<FMPDSORESULT xmlns="http://www.filemaker.com/fmpdsoresult">
+ <ERRORCODE>0</ERRORCODE>
+ <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
+ <LAYOUT/>
+ <ROW MODID="18" RECORDID="1">
+  <e_maintenance_history_agent>SI-Archives</e_maintenance_history_agent>
+  <e_maintenance_agency>Smithsonian Insitution Archives</e_maintenance_agency>
+  <e_eventDateTime1>2/8/2011</e_eventDateTime1>
+  <e_eventDateTime2>4/25/2012</e_eventDateTime2>
+  <e_eventDateTime3/>
+  <expeditionID>EACE0001</expeditionID>
+  <e_primary_name>Smithsonian-Princeton Expedition to Europe</e_primary_name>
+  <e_alt_name1/>
+  <e_alt_name2/>
+  <e_alt_name3/>
+  <e_exist_date_start>1925</e_exist_date_start>
+  <e_exist_date_end>1925</e_exist_date_end>
+  <e_exist_date_description/>
+  <e_description>This expedition set out during the summer of 1925 to study the more important
+   outcrops of the lower Paleozoic beds. R.M. Field offered the use of his automobile, which allowed
+   the expedition to move quickly and explore more remote areas. At each destination, local scholars
+   met the group and acted as guides during their stay. The expedition was disbanded in Paris, in
+   August, as the Princeton member of the team returned for classes. Several hundred pounds of
+   selected fossils were collected and sent to the United State National Museum (USNM). Members of
+   the expedition include Charles Elmer Ressler, USNM Associate Curator of Paleontology; Edward
+   Oscar Ulrich, USNM Associate Curator Paleontology; R.M. Field, Princeton University; R.M. Fulle,
+   Princeton University; and R.J. Beede, Williams College. The Expedition traveled to central
+   England, Wales, the extreme north coast of Scotland, the Scandinavian countries, Germany,
+   Czechoslovakia, Austria, Switzerland, and France.</e_description>
+  <e_subject>
+   <DATA>Paleontology </DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_subject>
+  <e_participant_person>
+   <DATA>Beede, R.J.</DATA>
+   <DATA>Fulle, R.M.</DATA>
+   <DATA>Field, R.M.</DATA>
+   <DATA>Resser, Charles Elmer</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_participant_person>
+  <e_participant_organization>
+   <DATA>Princeton University</DATA>
+   <DATA>Williams College</DATA>
+   <DATA>EACO9</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_participant_organization>
+  <e_place>
+   <DATA>Europe </DATA>
+   <DATA>England </DATA>
+   <DATA>Wales </DATA>
+   <DATA>Scotland </DATA>
+   <DATA>Scandinavia </DATA>
+   <DATA>Austria </DATA>
+   <DATA>Germany </DATA>
+   <DATA>Czechoslovakia </DATA>
+   <DATA>Switzerland </DATA>
+   <DATA>France </DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_place>
+  <e_related_material>
+   <DATA>Walcott, Chalres D. (Charles Doolittle), 18-50-1927</DATA>
+   <DATA>Charles D. Walcott Collection, 1851-1940 and undated</DATA>
+   <DATA>SIA RU007004 </DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_related_material>
+  <e_language1>English</e_language1>
+  <e_language1_code>eng</e_language1_code>
+  <e_language1_script>Latin</e_language1_script>
+  <e_language1_script_code>Latn</e_language1_script_code>
+  <e_language2/>
+  <e_language2_code/>
+  <e_language2_script/>
+  <e_language2_script_code/>
+  <e_maintenanceStatus>revised</e_maintenanceStatus>
+  <e_publicationStatus>inProcess</e_publicationStatus>
+  <e_source>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </e_source>
+ </ROW>
+</FMPDSORESULT>

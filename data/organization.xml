@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?><!-- This grammar has been deprecated - use FMPXMLRESULT instead -->
+<FMPDSORESULT xmlns="http://www.filemaker.com/fmpdsoresult">
+    <ERRORCODE>0</ERRORCODE>
+    <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
+    <LAYOUT/>
+    <ROW MODID="39" RECORDID="3">
+        <organizationID>EACO1</organizationID>
+        <o_primary_name>Smithsonian Institution Archives</o_primary_name>
+        <org_abbreviation>SIA</org_abbreviation>
+        <o_alt_name1>SI-Archives</o_alt_name1>
+        <o_alt_name2/>
+        <o_alt_name3/>
+        <o_address1>600 Maryland Avenue, SW </o_address1>
+        <o_address2>Suite 3000 </o_address2>
+        <o_city>Washington</o_city>
+        <o_state>DC</o_state>
+        <o_postalcode>20024-2520 </o_postalcode>
+        <o_country>United States</o_country>
+        <o_URL>http://siarchives.si.edu/</o_URL>
+        <o_phone>(202) 633-5870</o_phone>
+        <o_email_address>osiaref@si.edu </o_email_address>
+        <o_note/>
+        <o_description>Although the first Smithsonian Secretary, Joseph Henry, had seen the need for
+            an archives to preserve the records of the Institution, the Smithsonian Institution
+            Archives had its real origins in 1891, when William Jones Rhees, who had been Chief
+            Clerk since 1852, was given the title Keeper of the Archives. Rhees served in the post
+            until his death in 1907. For the first half of the twentieth century, the administrative
+            staff of the Office of the Secretary cared for the historical records while maintaining
+            the current files. In 1958 John F. Jameson III was hired by the Secretary&apos;s Office
+            to maintain the archives while also working with the current files. In 1960 Jameson was
+            succeeded as Archivist by John DeGurse, Jr., who remained in the position until 1964.
+            The mission of the Archives became more research-oriented in 1965, when Samuel T. Suratt
+            was appointed Smithsonian Archivist. His hiring was accompanied by the charge to engage
+            in the &quot;development of the Archives as a facility for historical research in
+            American Science&quot; by making the Archives&apos; resources more readily accessible to
+            historians through better identification, preservation, and cataloging of Smithsonian
+            documents. Within two years the Smithsonian Institution Archives was no longer funded by
+            the Office of the Secretary and became a separate line item in the Institution&apos;s
+            budget. The Archives moved into new quarters within the Smithsonian Castle during
+            Suratt&apos;s tenure. The Archives Division was comprised of three teams until FY 2007.
+            The Records Management (RM) Team is responsible for the appraisal and acquisition of all
+            permanent and temporary records into the Archives and its Records Center. The Team also
+            provides records management guidance and advice to offices, and creates records
+            disposition schedules for institutional records. The Arrangement and Description Team
+            created descriptive tools for SIA collections, including finding aids, bibliographic
+            records, and agency histories. The Reference Team receives visiting researchers into the
+            Archives and answers other inquiries from remote researchers. In 2007 the Arrangement
+            and Description Team was disbanded, and the RM Team has assumed those responsibilities. </o_description>
+        <o_parent_org>Smithsonian Institution</o_parent_org>
+        <o_legal_status>
+            <DATA>Federal Government, non-profit</DATA>
+            <DATA/>
+        </o_legal_status>
+        <o_legal_status_notes/>
+        <o_maintenance_history_agent>parillal</o_maintenance_history_agent>
+        <o_maintenance_agency>Smithsonian Institution Archives</o_maintenance_agency>
+        <o_eventDateTime1>02-09-2011</o_eventDateTime1>
+        <o_eventDateTime2>2/8/2012</o_eventDateTime2>
+        <o_eventDateTime3/>
+        <o_language1>English</o_language1>
+        <o_language1_code>eng</o_language1_code>
+        <o_language1_script>Latin</o_language1_script>
+        <o_language1_script_code>Latn</o_language1_script_code>
+        <o_language2/>
+        <o_language2_code/>
+        <o_language2_script/>
+        <o_language2_script_code/>
+        <o_language3/>
+        <o_language3_code/>
+        <o_language3_script/>
+        <o_language3_script_code/>
+        <o_maintenanceStatus>new </o_maintenanceStatus>
+        <o_publicationStatus>inProcess</o_publicationStatus>
+        <o_source>
+            <DATA>Smithsonian Institution Archives. (February 8, 2011). &quot;Contact Us&quot;.
+                Retrieved from http://siarchives.si.edu/sia/main_contact.html.</DATA>
+            <DATA>Smithsonian Institution Archives. (January 11, 2008). &quot; About SI
+                Archives.&quot; Retrieved fromhttp://siarchives.si.edu/sia/main_about.html </DATA>
+            <DATA/>
+        </o_source>
+        <exist_date1>1958</exist_date1>
+        <exist_date2/>
+    </ROW>
+</FMPDSORESULT>

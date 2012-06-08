@@ -7,39 +7,438 @@ define('EAC_PERSON_ID_NS', 'info:islandora/islandora-system:def/eacPersonId#');
 define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditionId#');
 define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
 define('NCD_COLLECTION_ID_NS', 'info:islandora/islandora-system:def/ncdCollectionId#');
+define('MODS_FIELDBOOK_ID_NS', 'info:islandora/islandora-system:def/modsFieldbookId#');
 
 /**
  * Defines the drush command for ingesting Fieldbook data.
  */
 function si_batch_ingest_drush_command() {
   return array(
-    'si_batch_ingest_all' => array(
-      'callback' => 'drush_si_batch_ingest_all',
-      'description' => "Ingests all fieldbook related data",
+    'si_batch_ingest_fieldbooks' => array(
+      'callback' => 'drush_si_batch_ingest_fieldbooks',
+      'description' => "Ingests all fieldbook related data, make sure the proper data is in the drush directory.",
       'examples' => array(
-        'drush si_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file url_for_tn type',
+        'drush ingest-fieldbooks',
       ),
-      'aliases' => array('sibatch', 'sibatchingest'),
-      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
-    ),
-    'si_batch_ingest' => array(
-      'callback' => 'drush_si_batch_ingest',
-      'description' => "reads an filemaker pro xml dump and creates fedora objects.  Valid types are person, expedition, organization, item and collection",
-      'arguments' => array(
-        'collection_pid' => 'The pid of the collection object, this is the collection the new objects will be related to',
-        'relationship' => 'The relationship the objects have to the collection object.  For example isMemberOf is a common relationship.',
-        'input_file' => 'The path to the files (absolute file system path, /var/www/http/drupal/sites/default/files).',
-        'input_xsl' => 'The path to the xsl file used to tranform the input_file',
-        'url_to_tn' => 'The url to the default thumbnail for this type of object',
-        'type' => 'the type of object'
-      ),
-      'examples' => array(
-        'drush si_batch_ingest_drush_command islandora:collection isMemberOfCollection /path/to/xml/file /path/to/xsl/file url_for_tn type',
-      ),
-      'aliases' => array('sibatch', 'sibatchingest'),
+      'aliases' => array('ingest-fieldbooks'),
       'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
     )
   );
+}
+
+/**
+ * Generate/Ingest all field book related data. Make relevant relationships between the ingested data.
+ */
+function drush_si_batch_ingest_fieldbooks() {
+  $objects = array();
+  $ingest_functions = array('si_ingest_persons', 'si_ingest_organizations', 'si_ingest_expeditions', 'si_ingest_collections', 'si_ingest_items');
+  foreach($ingest_functions as $function) {
+    $objects = array_merge($objects, $function());
+  }
+  return $objects;
+}
+
+/**
+ * Ingest the given records using the given function.
+ */
+function si_ingest_records(array $records, string $function) {
+  $objects = array();
+  foreach($records as $record) {
+    $objects[] = $function($record);
+  }
+  return $objects;
+}
+
+/**
+ * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of Person Records.
+ *
+ * @return array
+ *   A description of the ingested object, including any relevent information for updating its relations.
+ */
+function si_ingest_persons() {
+  $records = si_transform('person.xml', 'EAC_person.xsl', 'eac-cpf');
+  return si_ingest_records($records, 'si_ingest_person');
+}
+
+/**
+ * Ingests a single person record.
+ *
+ * @param string $record
+ *   The EAC-CPF Person record to ingest.
+ *
+ * @return array
+ *   A description of the ingested object.
+ */
+function si_ingest_person(string $record) {
+  list($id, $label, $description) = si_eaccpf_get_info($record);
+  $object = si_create_object($label, $description, 'person.png');
+  si_add_datastream_from_string($object, 'EAC-CPF', $record);
+  $object->add_relationship('isMemberOfCollection', 'si:people');
+  $object->add_relationship('hasEacCpfPerson', $id, EAC_PERSON_ID_NS);
+  $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
+  $data = array(
+    'pid' => $object->pid
+    // @TODO Identify other relvent information.
+  );
+  $object->forget(); // Prevent Memory Leaks
+  return $data;
+}
+
+/**
+ * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of the Organization Records.
+ *
+ * @return array
+ *   A description of the ingested object, including any relevent information for updating its relations.
+ */
+function si_ingest_organizations() {
+  $records = si_transform('organization.xml', 'EAC_organization.xsl', 'eac-cpf');
+  return si_ingest_records($records, 'si_ingest_organization');
+}
+
+/**
+ * Ingests a single organization record.
+ *
+ * @param string $record
+ *   The EAC-CPF Organization record to ingest.
+ *
+ * @return array
+ *   A description of the ingested object.
+ */
+function si_ingest_organization(string $record) {
+  list($id, $label, $description) = si_eaccpf_get_info($record);
+  $object = si_create_object($label, $description, 'organization.png');
+  si_add_datastream_from_string($object, 'EAC-CPF', $record);
+  $object->add_relationship('isMemberOfCollection', 'si:organizations');
+  $object->add_relationship('hasEacCpfOrganization', $id, EAC_ORGANIZATION_ID_NS);
+  $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
+  $data = array(
+    'pid' => $object->pid
+    // @TODO Identify other relvent information.
+  );
+  $object->forget(); // Prevent Memory Leaks
+  return $data;
+}
+
+/**
+ * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of the Expeditions Records.
+ *
+ * @return array
+ *   A description of the ingested object, including any relevent information for updating its relations.
+ */
+function si_ingest_expeditions() {
+  $records = si_transform('expedition.xml', 'EAC_expedition.xsl', 'eac-cpf');
+  return si_ingest_records($records, 'si_ingest_organization');
+}
+
+/**
+ * Ingests a single expedition record.
+ *
+ * @param string $record
+ *   The EAC-CPF Expedition record to ingest.
+ *
+ * @return array
+ *   A description of the ingested object.
+ */
+function si_ingest_expedition(string $record) {
+  list($id, $label, $description) = si_eaccpf_get_info($record);
+  $object = si_create_object($label, $description, 'organization.png');
+  si_add_datastream_from_string($object, 'EAC-CPF', $record);
+  $object->add_relationship('isMemberOfCollection', 'si:expeditions');
+  $object->add_relationship('hasEacCpfExpedition', $id, EAC_EXPEDITION_ID_NS);
+  $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
+  $data = array(
+    'pid' => $object->pid
+    // @TODO Identify other relvent information.
+  );
+  $object->forget(); // Prevent Memory Leaks
+  return $data;
+}
+
+/**
+ * Generates/Ingests NCD records for each row in the FileMaker Pro dump of the Collection Records.
+ *
+ * @return array
+ *   A description of the ingested object, including any relevent information for updating its relations.
+ */
+function si_ingest_collections() {
+  $records = si_transform('collection.xml', 'NDC_collection.xsl', 'RecordSet');
+  return si_ingest_records($records, 'si_ingest_collection');
+}
+
+/**
+ * Ingests a single collection record.
+ *
+ * @param string $record
+ *   The NCD collection record to ingest.
+ *
+ * @return array
+ *   A description of the ingested object.
+ */
+function si_ingest_collection(string $record) {
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  list($id, $label, $description) = si_ncd_get_info($record);
+  $object = si_create_object($label, $description, 'collection.png');
+  si_add_datastream_from_string($object, 'NCD', $record);
+  $object->add_relationship('isMemberOfCollection', 'si:collections');
+  $object->add_relationship('hasNcdId', $id, NCD_COLLECTION_ID_NS);
+  $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
+  $data = array(
+    'pid' => $object->pid
+    // @TODO Identify other relvent information.
+  );
+  $object->forget(); // Prevent Memory Leaks
+  return $data;
+}
+
+/**
+ * Generates/Ingests MODS records for each row in the FileMaker Pro dump of the Item Records.
+ *
+ * @return array
+ *   A description of the ingested object, including any relevent information for updating its relations.
+ */
+function si_ingest_items() {
+  $records = si_transform('items.xml', 'MODS_item.xsl', 'mods');
+  return si_ingest_records($records, 'si_ingest_collection');
+}
+
+/**
+ * Ingests a single item record.
+ *
+ * @param string $record
+ *   The MODS item record to ingest.
+ *
+ * @return array
+ *   A description of the ingested object.
+ */
+function si_ingest_item(string $record) {
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  list($id, $label, $description) = si_mods_get_info($record);
+  $object = si_create_object($label, $description, 'fieldbook.png');
+  si_add_datastream_from_string($object, 'MODS', $record);
+  $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
+  // Find out about this creator stuff.
+  si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
+  $object->add_relationship('hasModsId', $id, MODS_FIELDBOOK_ID_NS);
+  $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
+  $data = array(
+    'pid' => $object->pid
+    // @TODO Identify other relvent information.
+  );
+  $object->forget(); // Prevent Memory Leaks
+  return $data;
+}
+
+/**
+ * Transforms the given input with the given tranformation.
+ *
+ * The given files are expected to live in the data/xsl directories respectively.
+ *
+ * @param string $input
+ *   The file to be tranformed.
+ * @param string $tranformn to be applied.
+ *   The xsl transform to apply
+ * @param string $root_element
+ *   The case-sensitive name of the root element in the transformed records.
+ *
+ * @returns array
+ *   Each record as a string.
+ */
+function si_transform($input, $transform, $root_element) {
+  $directory = dirname(__FILE__);
+  $xslt = new XSLTProcessor;
+  $xslt->importStyleSheet(DOMDocument::load("$directory/xsl/$transform"));
+  $records = $xslt->transformToXML(DOMDocument::loadXML(file_get_contents("$directory/data/$input")));
+  $closing_tag = "</$root_element>";
+  $records = explode($closing_tag, $records);
+  foreach($records as &$record) {
+    $record .= $closing_tag;
+  }
+  return $records;
+}
+
+/**
+ * Creates a object with the given attributes.
+ */
+function si_create_object(string $label, string $description, string $thumbnail) {
+  $object = si_create_empty_object($label);
+  si_update_dc_description($object, $description);
+  si_add_thumbnail($thumbnail);
+}
+
+/**
+ * Creates a empty Fedora Object.
+ *
+ * @param string $label
+ *   The label for the object.
+ * @return FedoraItem
+ *   The newly created FedoraItem.
+ */
+function si_create_empty_object(string $label) {
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  $pid = Fedora_Item::get_next_PID_in_namespace('si');
+  drush_print("Creating object: {$label} ($pid)");
+  $object = Fedora_Item::ingest_new_item($pid, 'A', $label);
+  return $object;
+}
+
+/**
+ * Updates and objects DC datastreams dc:description element with the given description.
+ *
+ * @param FedoraItem $object
+ *   The object to modify.
+ * @param string $description
+ *   The description to add to the DC.
+ */
+function si_update_dc_description(FedoraItem $object, $description) {
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  module_load_include('inc', 'fedora_repository', 'api/dublin_core');
+  $dc = new Dublin_Core($object);
+  if (isset($description)) {
+    $dc->set_element('dc:description', $description);
+  }
+  else {
+    drush_print("error adding description to dc, description not set.");
+  }
+  $dc->save();
+}
+
+/**
+ * Adds a thumbnail datastream to the object.
+ *
+ * @param FedoraItem $object
+ *   The fedora object to add the thumbnail to.
+ * @param string $thumbnail
+ *   The name of the thumbnail in the images directory.
+ */
+function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
+  $directory = dirname(__FILE__);
+  si_add_datastream_from_url($object, 'TN', "$directory/images/$thumbnail", 'image/png');
+}
+
+/**
+ * Adds a datastream based on the given attributes, where URL points to a file to be added.
+ *
+ * @param FedoraItem $object
+ *  The object to add the datastream to.
+ * @param string $dsid
+ *  The datastream id
+ * @param string $url
+ *  The url to the file to add
+ * @param string $mimetype
+ *  The mime type of the datastream
+ * @param string $label
+ *  The label of the datastream
+ * @param string $control_group
+ *  The control group for the datastream
+ */
+function si_add_datastream_from_url(FedoraItem $object, string $dsid, string $url, string $mimetype, string $label = NULL, $control_group = 'M') {
+  $label = isset($label) ? $label : $dsid;
+  if ($object->add_datastream_from_url($url, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
+    drush_print("Added datastream $dsid to {$object->pid}");
+  }
+  else {
+    drush_print("Failed adding $dsid to {$object->pid} using file $url");
+  }
+}
+
+/**
+ * Adds a datastream based on the given attributes, where the content of the datastream is given in $string.
+ *
+ * @param FedoraItem $object
+ *  The object to add the datastream to.
+ * @param string $dsid
+ *  The datastream id
+ * @param string $string
+ *  The content of the datastream
+ * @param string $mimetype
+ *  The mime type of the datastream
+ * @param string $label
+ *  The label of the datastream
+ * @param string $control_group
+ *  The control group for the datastream
+ */
+function si_add_datastream_from_string(FedoraItem $object, string $dsid, string $string, $mimetype = 'text/xml', $label = '', $control_group = 'M') {
+  $label = isset($label) ? $label : $dsid;
+  if ($object->add_datastream_from_string($string, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
+    drush_print("Added datastream $dsid to {$object->pid}");
+  }
+  else {
+    drush_print("Failed adding $dsid to {$object->pid} using file $url");
+  }
+}
+
+/**
+ * Gets useful information from the given eac-cpf record.
+ *
+ * @param string $record
+ *   The EAC-CPF record to query.
+ *
+ * @return array
+ *   An array of info.
+ */
+function si_eaccpf_get_info(string $record) {
+  $xml = simplexml_load_string($record);
+  $namespaces = $xml->getDocNamespaces();
+  $xml->registerXPathNamespace('ns', $namespaces['']);
+  $id = (string) array_shift($xml->xpath('//ns:recordId'));
+  $label = (string) array_shift($xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part'));
+  $description = (string) array_shift($xml->xpath('//ns:biogHist/ns:p'));
+  $label = si_normalize_object_label($label);
+  return array($id, $label, $description);
+}
+
+/**
+ * Gets useful information form the given NCD record.
+ *
+ * @param string $record
+ *   The NCD record to query.
+ *
+ * @return array
+ *   An array of info.
+ */
+function si_ncd_get_info(string $record) {
+  $xml = simplexml_load_string($record);
+  $namespaces = $xml->getDocNamespaces();
+  $xml->registerXPathNamespace('ns', $namespaces['']);
+  $id = (string) array_shift($xml->xpath('//ns:CollectionId'));
+  $label = (string) array_shift($xml->xpath('//ns:dc_title'));
+  $description = (string) array_shift($xml->xpath('//ns:dc_description'));
+  $label = si_normalize_object_label($label);
+  return array($id, $label, $description);
+}
+
+/**
+ * Gets useful information form the given MODS record.
+ *
+ * @param string $record
+ *   The EAC-CPF record to query.
+ *
+ * @return array
+ *   An array of info.
+ */
+function si_mods_get_info(string $record) {
+  $xml = simplexml_load_string($record);
+  $namespaces = $xml->getDocNamespaces();
+  $xml->registerXPathNamespace('mods', $namespaces['']);
+  $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
+  $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
+  $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
+  $label = si_normalize_object_label($label);
+  return array($id, $label, $description);
+}
+
+/**
+ * Normalizes the label for the fedora object.
+ */
+function si_normalize_object_label(string $label) {
+  // @TODO do the full regex check
+  return (strlen($label) > 255) ? substr($label, 0, 254) : $label;
+}
+
+/**
+ *
+ */
+function si_update_relationships(array $objects) {
 }
 
 /**
@@ -107,72 +506,73 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
   $xml_record = si_transform($input_file, $input_xsl);
   $type = (string) trim($type);
   $object = null;
-  if ($type == 'collection') {//NCD schema
-    $xml_records = explode("</RecordSet>", $xml_record); //they gave us all the records on one file so the tranform contains all the records as well simplexml will not load it as it is many valid docs contained in one
-    foreach ($xml_records as $record) {
-      $record = $record . '</RecordSet>';
-      si_collection_create_object($collection_pid, $relationship, $record, $url_to_tn);
-    }
-  }
-  else if ($type == 'item') {//transform is to mods and we need to update relationships across all types from data in this record
-    $xml_records = explode("</mods>", $xml_record); //they gave us all the records in one file so the tranform contains all the records and simplexml will not load it as it is many valid docs contained in one so we have to split it up
-    $orginal_records = simplexml_load_file($input_file); // there is content in the orginal that does not map to mods but we need to manage relationships
-    $i = 0;
-    foreach ($xml_records as $record) {
-      $record = $record . '</mods>';
-      $xml = simplexml_load_string($record);
-      $namespaces = $xml->getDocNamespaces();
-      $xml->registerXPathNamespace('mods', $namespaces['']);
-      //TODO: implement a function to update the mods with human readable content based on the ids that exist in the data.
-      ///mods:mods/mods:name[1]/mods:namePart[1]
-      $or = $orginal_records->ROW[$i++]; //this should give us the corresponding orginal record
-      $or = $or->asXML(); //make this valid xml so we can do xpath
-      $or_xml = simplexml_load_string($or);
-      //print_r($or);
-      $relationship_data = si_get_fmp_relationship_data($or_xml); //get an array of relationship info to update relationships and update the mods so it is more meaningful
-      $object = si_item_create_object($collection_pid, $relationship, $xml, $url_to_tn);
-      //$object->add_relationship('hasEacCpfExpedition', $eac_id, 'info:islandora/islandora-system:def/eacItemId#');
-      $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
-      ///mods:mods/mods:abstract[1]
-      $description = $xml->xpath('//mods:abstract');
-      si_update_dc($object, $description[0]);
-      si_updateAllRelationships($object, $relationship_data); //update relationships based on the info in this record
-    }
-  }
-  else {//all other types are eac-cpf
-    $xml_records = explode("</eac-cpf>", $xml_record);
-    foreach ($xml_records as $record) {
-      $record = $record . '</eac-cpf>';
-      $xml = simplexml_load_string($record);
-      $namespaces = $xml->getDocNamespaces();
-      $xml->registerXPathNamespace('ns', $namespaces['']);
-      ///default:eac-cpf/default:cpfDescription[1]/default:identity[1]/default:nameEntry[1]/default:part[1]
-      $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
-      $label = (string) $result[0];
-      $result = $xml->xpath('//ns:recordId');
-      $eac_id = (string) $result[0]; //we want to add this to the triple store so we can query when ingesting other objects
-      $object = si_create_object($collection_pid, $relationship, $xml, $url_to_tn);
-      //default:eac-cpf/default:cpfDescription[1]/default:description[1]/default:biogHist[1]/default:p[1]
-      $result = $xml->xpath('//ns:biogHist/ns:p');
-      si_update_dc($object, (string) $result[0]);
-      switch ($type) {
-        case 'person':
-          $object->add_relationship('hasEacCpfPerson', $eac_id, EAC_PERSON_ID_NS);
-          $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
-          break;
-        case 'organization':
-          $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
-          $object->add_relationship('hasEacCpfOrganization', $eac_id, EAC_ORGANIZATION_ID_NS);
-          break;
-        case 'expedition':
-          drush_print('adding relationship for expedition');
-          $object->add_relationship('hasEacCpfExpedition', $eac_id, EAC_EXPEDITION_ID_NS);
-          $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
-          break;
+  switch($type) {
+    case 'collection': // NCD
+      $xml_records = explode("</RecordSet>", $xml_record); // Split into seperate XML Documents
+      foreach ($xml_records as $record) {
+        $record = $record . '</RecordSet>';
+        si_collection_create_object($collection_pid, $relationship, $record, $url_to_tn);
       }
-    }
+      break;
+    case 'item': // MODS
+      $xml_records = explode("</mods>", $xml_record); // Split into XML documents
+      $original_records = simplexml_load_file($input_file); // There is content in the original that does not map to mods but we need to manage relationships
+      $i = 0;
+      foreach ($xml_records as $record) {
+        $record = $record . '</mods>';
+        $xml = simplexml_load_string($record);
+        $namespaces = $xml->getDocNamespaces();
+        $xml->registerXPathNamespace('mods', $namespaces['']);
+        $or = $original_records->ROW[$i++]; // This should give us the corresponding original record
+        $or = $or->asXML();
+        $or_xml = simplexml_load_string($or);
+        $relationship_data = si_get_fmp_relationship_data($or_xml);
+        $object = si_item_create_object($collection_pid, $relationship, $xml, $url_to_tn); // Create the Fedora object with MODS data.
+        $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
+        $description = $xml->xpath('//mods:abstract');
+        si_update_dc($object, $description[0]);
+        si_updateAllRelationships($object, $relationship_data);
+      }
+      break;
+    case 'person':
+    case 'organization':
+    case 'expedition': // EAC-CPF
+      $xml_records = explode("</eac-cpf>", $xml_record);
+      foreach ($xml_records as $record) {
+        $record = $record . '</eac-cpf>';
+        $xml = simplexml_load_string($record);
+        $namespaces = $xml->getDocNamespaces();
+        $xml->registerXPathNamespace('ns', $namespaces['']);
+        ///default:eac-cpf/default:cpfDescription[1]/default:identity[1]/default:nameEntry[1]/default:part[1]
+        $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
+        $label = (string) $result[0];
+        $result = $xml->xpath('//ns:recordId');
+        $eac_id = (string) $result[0]; //we want to add this to the triple store so we can query when ingesting other objects
+        $object = si_create_object($collection_pid, $relationship, $xml, $url_to_tn);
+        //default:eac-cpf/default:cpfDescription[1]/default:description[1]/default:biogHist[1]/default:p[1]
+        $result = $xml->xpath('//ns:biogHist/ns:p');
+        si_update_dc($object, (string) $result[0]);
+        switch ($type) {
+          case 'person':
+            $object->add_relationship('hasEacCpfPerson', $eac_id, EAC_PERSON_ID_NS);
+            $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
+            break;
+          case 'organization':
+            $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
+            $object->add_relationship('hasEacCpfOrganization', $eac_id, EAC_ORGANIZATION_ID_NS);
+            break;
+          case 'expedition':
+            drush_print('adding relationship for expedition');
+            $object->add_relationship('hasEacCpfExpedition', $eac_id, EAC_EXPEDITION_ID_NS);
+            $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
+            break;
+        }
+      }
+      break;
   }
 }
+
+
 
 /**
  * reads the orginal xml before we tranform to mods
@@ -278,7 +678,6 @@ function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
  */
 function si_sparql_results_as_array($content) {
   $content = new SimpleXMLElement($content);
-
   $resultsarray = array();
   foreach ($content->results->result as $result) {
     $resultsarray[] = substr($result->object->attributes()->uri, 12); // Remove 'info:fedora/'.
@@ -304,24 +703,12 @@ function si_run_query($query) {
 
 /**
  *
- * @param string $xml_file
- * @param string $xsl_file
- */
-function si_transform($xml_file, $xsl_file) {
-  $xslt = new xsltProcessor;
-  $xslt->importStyleSheet(DomDocument::load($xsl_file));
-  $records = $xslt->transformToXML(DomDocument::loadXML(file_get_contents($xml_file)));
-  return $records;
-}
-
-/**
- *
  * @param string $collection_pid
  * @param string $relationship
  * @param string $xml
  * @param string $url_to_tn
  */
-function si_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
+function si_create_object_old($collection_pid, $relationship, &$xml, $url_to_tn) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
   $label = (string) $result[0];
@@ -407,11 +794,11 @@ function si_update_mods_creator(&$xml) {
       $namespaces = $eac_xml->getDocNamespaces();
       $eac_xml->registerXPathNamespace('eac', 'urn:isbn:1-931666-33-4');
       /* <cpfDescription>
-        <identity>
-        <entityType>person</entityType>
-        <nameEntry localType="primary">
-        <part localType="fullname">Abbott, William Louis, 1860-1936</part>
-        </nameEntry> */
+         <identity>
+         <entityType>person</entityType>
+         <nameEntry localType="primary">
+         <part localType="fullname">Abbott, William Louis, 1860-1936</part>
+         </nameEntry> */
       $creator_text = $eac_xml->xpath('//eac:nameEntry[@localType="primary"]/eac:part');
       //$creator = (string)$creator_text[0];
       $dom_node = dom_import_simplexml($creator);
@@ -476,23 +863,3 @@ function si_add_relationship_with_count($relationShip, $object, $uri) {
 
 }
 
-/**
- *
- * @param string $object
- * @param string $description
- *
- */
-function si_update_dc($object, $description) {
-  module_load_include('inc', 'fedora_repository', 'api/dublin_core');
-  $dc = new Dublin_Core($object);
-  //$dc->remove_element("dc:description");
-  if (isset($description)) {
-    $dc->set_element('dc:description', $description);
-  }
-  else {
-    drush_print("error adding description to dc, description not set.");
-  }
-  $dc->save();
-}
-
-?>

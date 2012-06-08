@@ -19,9 +19,10 @@
         <mods xmlns="http://www.loc.gov/mods/v3"
             xmlns:mods="http://www.loc.gov/mods/v3"
             xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd" ID="{fmp:itemID}">
             <abstract>
-                <xsl:value-of select="fmp:i_abstract"/>
+                <xsl:value-of select="normalize-space(fmp:i_abstract)"/>
             </abstract>
             <xsl:call-template name="titleInfo">
                 <xsl:with-param name="type" select="fmp:i_title_type"/>
@@ -155,17 +156,37 @@
         <xsl:param name="name"/>
         <xsl:param name="type"/>
         <xsl:param name="role"/>
+        <xsl:variable name="value">
+            <xsl:call-template name="getTerm">
+                <xsl:with-param name="input" select="$name"/>
+                <xsl:with-param name="index" select="1"/>
+            </xsl:call-template>
+        </xsl:variable>
+        <xsl:variable name="authority">
+            <xsl:call-template name="getTerm">
+                <xsl:with-param name="input" select="$name"/>
+                <xsl:with-param name="index" select="2"/>
+            </xsl:call-template>
+        </xsl:variable>
         <name type="personal">
             <xsl:call-template name="nameType">
                 <xsl:with-param name="value" select="$type"/>
             </xsl:call-template>
-            <role>
-                <roleTerm authority="marcrelator" type="text">
-                    <xsl:value-of select="$role"/>
-                </roleTerm>
-            </role>
+            <xsl:if test="substring($value, 1, 4) = 'EACP'">
+                <xsl:attribute name="ID"><xsl:value-of select="$value"/></xsl:attribute>
+            </xsl:if>
+            <xsl:if test="normalize-space($authority)">
+                <xsl:attribute name="authority"><xsl:value-of select="$authority"/></xsl:attribute>
+            </xsl:if>
+            <xsl:if test="$role">
+                <role>
+                    <roleTerm authority="marcrelator" type="text">
+                        <xsl:value-of select="$role"/>
+                    </roleTerm>
+                </role>
+            </xsl:if>
             <namePart>
-                <xsl:value-of select="$name"/>
+                <xsl:value-of select="$value"/>
             </namePart>
         </name>
     </xsl:template>

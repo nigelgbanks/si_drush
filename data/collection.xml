@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?><!-- This grammar has been deprecated - use FMPXMLRESULT instead -->
+<FMPDSORESULT xmlns="http://www.filemaker.com/fmpdsoresult">
+ <ERRORCODE>0</ERRORCODE>
+ <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
+ <LAYOUT/>
+ <ROW MODID="67" RECORDID="5">
+  <c_author>nakasones</c_author>
+  <c_corporate_affiliation>Smithsonian Institution Archives</c_corporate_affiliation>
+  <c_record_created_date>02-08-2011</c_record_created_date>
+  <c_record_edited_date>1/26/2012</c_record_edited_date>
+  <c_editor>nakasones</c_editor>
+  <c_record_harvest_date/>
+  <collectionID>NCDC3</collectionID>
+  <c_primary_name>Carl Heinrich field notebooks, 1916-1919, 1927, 1929</c_primary_name>
+  <c_alt_name/>
+  <c_FormationPeriod>1916-1919, 1927, 1929</c_FormationPeriod>
+  <c_collector>
+   <DATA>EACP6</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_collector>
+  <c_institution>Smithsonian Institution</c_institution>
+  <c_physical_medium/>
+  <c_location>Smithsonian Institution Archives</c_location>
+  <c_extent>6 notebooks</c_extent>
+  <c_access_condition>At least 24 hours advance notice is recommended to consult this collection.
+   Contact the Division of Mammals at 202-633-1253 to make an appointment.</c_access_condition>
+  <c_contact>lunded@si.edu </c_contact>
+  <c_descr>These notebooks document Carl Heinrich&apos;s field trips to New Mexico, 1916; Colorado,
+   Texas, and Oklahoma, 1918; Texas, 1918-1919; Arizona, 1927; and expenses and collecting in
+   Guatemala, 1929. These field notes were taken while Heinrich worked for the United States
+   Department of Agriculture (USDA) inspecting crops for damage from insects.</c_descr>
+  <c_notes/>
+  <c_format/>
+  <c_associated_person>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_associated_person>
+  <c_common_name>
+   <DATA>Insects</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_common_name>
+  <c_expedition>
+   <DATA>EACE0002</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_expedition>
+  <c_living_time_period>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_living_time_period>
+  <c_geospatial_coverage>
+   <DATA>New Mexico</DATA>
+   <DATA>Arizona</DATA>
+   <DATA>Colorado</DATA>
+   <DATA>Texas</DATA>
+   <DATA>Oklahoma</DATA>
+   <DATA>Guatamala</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_geospatial_coverage>
+  <c_taxon_name_coverage>
+   <DATA>Insecta</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_taxon_name_coverage>
+  <c_related_collections>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_related_collections>
+  <c_related_materials>
+   <DATA>Finding aid for SIA RU007125 Carl Heinrich Field Notebooks, 1916-1919, 1927, 1929 By James
+    A. Steed. http://siarchives.si.edu/findingaids/FARU7125.htm</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_related_materials>
+  <c_altID>SIA RU007125</c_altID>
+  <c_kingdomCoverage>
+   <DATA>Animalia</DATA>
+   <DATA/>
+   <DATA/>
+   <DATA/>
+  </c_kingdomCoverage>
+  <c_physical_location_website>http://siarchives.si.edu/</c_physical_location_website>
+ </ROW>
+</FMPDSORESULT>
