@@ -30,6 +30,8 @@ function si_batch_ingest_drush_command() {
  * Generate/Ingest all field book related data. Make relevant relationships between the ingested data.
  */
 function drush_si_batch_ingest_fieldbooks() {
+  $url = variable_get('fedora_base_url', 'http://localhost:8080/fedora');
+  drush_print("Ingest Fieldbooks into Fedora repository: $url");
   $objects = array();
   $ingest_functions = array('si_ingest_persons', 'si_ingest_organizations', 'si_ingest_expeditions', 'si_ingest_collections', 'si_ingest_items');
   foreach($ingest_functions as $function) {
@@ -161,7 +163,7 @@ function si_ingest_expedition(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_collections() {
-  $records = si_transform('collection.xml', 'NDC_collection.xsl', 'RecordSet');
+  $records = si_transform('collection.xml', 'NCD_collection.xsl', 'RecordSet');
   return si_ingest_records($records, 'si_ingest_collection');
 }
 
@@ -197,8 +199,8 @@ function si_ingest_collection(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_items() {
-  $records = si_transform('items.xml', 'MODS_item.xsl', 'mods');
-  return si_ingest_records($records, 'si_ingest_collection');
+  $records = si_transform('item.xml', 'MODS_item.xsl', 'mods');
+  return si_ingest_records($records, 'si_ingest_item');
 }
 
 /**
@@ -217,7 +219,7 @@ function si_ingest_item(string $record) {
   si_add_datastream_from_string($object, 'MODS', $record);
   $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
   // Find out about this creator stuff.
-  si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
+  //si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
   $object->add_relationship('hasModsId', $id, MODS_FIELDBOOK_ID_NS);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
   $data = array(
@@ -250,6 +252,8 @@ function si_transform($input, $transform, $root_element) {
   $records = $xslt->transformToXML(DOMDocument::loadXML(file_get_contents("$directory/data/$input")));
   $closing_tag = "</$root_element>";
   $records = explode($closing_tag, $records);
+  $records = array_map('trim', $records);
+  $records = array_filter($records);
   foreach($records as &$record) {
     $record .= $closing_tag;
   }
@@ -262,7 +266,8 @@ function si_transform($input, $transform, $root_element) {
 function si_create_object(string $label, string $description, string $thumbnail) {
   $object = si_create_empty_object($label);
   si_update_dc_description($object, $description);
-  si_add_thumbnail($thumbnail);
+  si_add_thumbnail($object, $thumbnail);
+  return $object;
 }
 
 /**
@@ -312,7 +317,7 @@ function si_update_dc_description(FedoraItem $object, $description) {
  */
 function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
   $directory = dirname(__FILE__);
-  si_add_datastream_from_url($object, 'TN', "$directory/images/$thumbnail", 'image/png');
+  si_add_datastream_from_file($object, 'TN', "$directory/images/$thumbnail", 'image/png');
 }
 
 /**
@@ -331,9 +336,9 @@ function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
  * @param string $control_group
  *  The control group for the datastream
  */
-function si_add_datastream_from_url(FedoraItem $object, string $dsid, string $url, string $mimetype, string $label = NULL, $control_group = 'M') {
+function si_add_datastream_from_file(FedoraItem $object, string $dsid, string $file, string $mimetype, string $label = NULL, $control_group = 'M') {
   $label = isset($label) ? $label : $dsid;
-  if ($object->add_datastream_from_url($url, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
+  if ($object->add_datastream_from_file($file, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
     drush_print("Added datastream $dsid to {$object->pid}");
   }
   else {
@@ -419,7 +424,7 @@ function si_ncd_get_info(string $record) {
 function si_mods_get_info(string $record) {
   $xml = simplexml_load_string($record);
   $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('mods', $namespaces['']);
+  $xml->registerXPathNamespace('ns', $namespaces['']);
   $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
   $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
   $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
@@ -702,74 +707,6 @@ function si_run_query($query) {
 }
 
 /**
- *
- * @param string $collection_pid
- * @param string $relationship
- * @param string $xml
- * @param string $url_to_tn
- */
-function si_create_object_old($collection_pid, $relationship, &$xml, $url_to_tn) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
-  $label = (string) $result[0];
-  $new_pid = Fedora_Item::get_next_PID_in_namespace('si'); //we did not define a namespace so it will use the defaul
-  drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
-  $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
-  drush_print("created object $new_pid now adding datastreams");
-  if ($object->add_datastream_from_url($url_to_tn, 'TN', 'TN', 'image/png', 'M', 'Added TN Stream')) {
-    drush_print('added TN stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding TN stream to ' . $new_pid . " using url $url_to_tn");
-  }
-  if ($object->add_datastream_from_string($xml->asXML(), 'EAC-CPF', 'EAC-CPF', 'text/xml', 'M', 'added EAC-CPF Stream')) {
-    drush_print('added EAC-CPF stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding EAC-CPF stream to ' . $new_pid);
-  }
-  $object->add_relationship($relationship, $collection_pid); //add_relationship always returns void so no sense checking
-
-  return $object;
-}
-
-/**
- *
- * @param string $collection_pid
- * @param string $relationship
- * @param string $xml
- * @param string $url_to_tn
- */
-function si_item_create_object($collection_pid, $relationship, &$xml, $url_to_tn) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  $result = $xml->xpath('//mods:titleInfo/mods:title');
-  $label = (string) $result[0];
-  $new_pid = Fedora_Item::get_next_PID_in_namespace('si');
-  drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
-  if (strlen($label) > 255) {//@TODO do the full regex check
-    $label = substr($label, 0, 254);
-  }
-  $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
-  drush_print("created object $new_pid now adding datastreams");
-  if ($object->add_datastream_from_url($url_to_tn, 'TN', 'TN', 'image/png', 'M', 'Added TN Stream')) {
-    drush_print('added TN stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding TN stream to ' . $new_pid . " using url $url_to_tn");
-  }
-  si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
-  if ($object->add_datastream_from_string($xml->asXML(), 'MODS', 'MODS', 'text/xml', 'M', 'added EAC-CPF Stream')) {
-    drush_print('added MODS stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding MODS stream to ' . $new_pid);
-  }
-  $object->add_relationship($relationship, $collection_pid); //add_relationship always returns void so no sense checking
-
-  return $object;
-}
-
-/**
  * the mods creator is just a place holder pointing to the Eaccpf record updating it here.
  * @param object $xml
  */
@@ -806,57 +743,6 @@ function si_update_mods_creator(&$xml) {
     }
   }
   drush_print('mods  creator ' . (string) $result[0]);
-}
-
-/**
- *
- * @param string $collection_pid
- * @param string $relationship
- * @param string $ncd_xml
- * @param string $url_to_tn
- * @return fedora_item
- */
-function si_collection_create_object($collection_pid, $relationship, $ncd_xml, $url_to_tn) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  //uses fedora settings taken for islandora drupal settings
-  $xml = simplexml_load_string($ncd_xml);
-  //TODO:check for errors loading xml
-  ///default:RecordSet/default:Collections[1]/default:Collection[1]/default:DesciptiveGroup[1]/default:dc_title[1]
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('__empty_ns', $namespaces['']);
-  $result = $xml->xpath('//__empty_ns:dc_title');
-  $label = (string) $result[0];
-  $result = $xml->xpath('//__empty_ns:CollectionId');
-  $ncd_id = (string) $result[0]; //we want to add this to the triple store so we can query when ingesting other objects
-  drush_print("ncd id = $ncd_id");
-  $new_pid = Fedora_Item::get_next_PID_in_namespace("si");
-  drush_print("creating object with pid " . $new_pid . ' with label ' . $label);
-  $object = Fedora_Item::ingest_new_item($new_pid, 'A', $label); //create a new skeleton object
-  drush_print("created object $new_pid now adding datastreams");
-  if ($object->add_datastream_from_url($url_to_tn, 'TN', 'TN', 'image/png', 'M', 'Added TN Stream')) {
-    drush_print('added TN stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding TN stream to ' . $new_pid . " using url $url_to_tn");
-  }
-  if ($object->add_datastream_from_string($ncd_xml, 'NCD', 'NCD', 'text/xml', 'M', 'added NCD Stream')) {
-    drush_print('added NCD stream to ' . $new_pid);
-  }
-  else {
-    drush_print('Failed adding NCD stream to ' . $new_pid);
-  }
-  if ($object->add_relationship($relationship, $collection_pid)) {//add_relationship always returns void so no sense checking
-    drush_print('added relationship ');
-  }
-  else {
-    drush_print('Failed adding relationship ');
-  }
-  $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
-
-  $object->add_relationship('hasNcdId', $ncd_id, NCD_COLLECTION_ID_NS);
-  $result = $xml->xpath('//__empty_ns:dc_description');
-  si_update_dc($object, (string) $result[0]);
-  return $object;
 }
 
 function si_add_relationship_with_count($relationShip, $object, $uri) {
