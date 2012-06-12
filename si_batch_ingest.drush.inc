@@ -8,6 +8,11 @@ define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditio
 define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
 define('NCD_COLLECTION_ID_NS', 'info:islandora/islandora-system:def/ncdCollectionId#');
 define('MODS_FIELDBOOK_ID_NS', 'info:islandora/islandora-system:def/modsFieldbookId#');
+define('TYPE_PERSON', 'p'); // Smaller string takes up less space.
+define('TYPE_ORGANIZATION', 'o');
+define('TYPE_EXPEDITION', 'e');
+define('TYPE_COLLECTION', 'c');
+define('TYPE_FIELDBOOK', 'f');
 
 /**
  * Defines the drush command for ingesting Fieldbook data.
@@ -32,12 +37,9 @@ function si_batch_ingest_drush_command() {
 function drush_si_batch_ingest_fieldbooks() {
   $url = variable_get('fedora_base_url', 'http://localhost:8080/fedora');
   drush_print("Batch Ingesting Fieldbooks into Fedora repository: $url");
-  $objects = array();
-  $ingest_functions = array('si_ingest_persons', 'si_ingest_organizations', 'si_ingest_expeditions', 'si_ingest_collections', 'si_ingest_fieldbooks');
-  foreach($ingest_functions as $function) {
-    $objects = array_merge($objects, $function());
-  }
-  return $objects;
+  $objects = si_batch_ingest_all();
+  si_batch_update_all();
+  drush_print("The batch ingest was successful");
 }
 
 /**
@@ -56,6 +58,40 @@ function drush_si_batch_ingest_fieldbooks_validate() {
   }
   else if(array_search($cli['uri'], $valid_uris) === FALSE) {
     return drush_set_error('INVALID_ARGUMENT', dt('The --uri given is not valid. Please use either "http://si-islandora.si.edu" or "http://si-islandora.si.edu/test"'));
+  }
+}
+
+/**
+ * Batch ingest all the availible objects.
+ *
+ * @return array
+ *   An array of all the objects created, grouped by the types defined at the top of this file.
+ */
+function si_batch_ingest_all() {
+  static $ingest_functions = array(
+    TYPE_PERSON => 'si_ingest_persons',
+    TYPE_ORGANIZATION => 'si_ingest_organizations',
+    TYPE_EXPEDITION => 'si_ingest_expeditions',
+    TYPE_COLLECTION => 'si_ingest_collections',
+    TYPE_FIELDBOOK => 'si_ingest_fieldbooks'
+  );
+  $objects = array();
+  foreach($ingest_functions as $key => $function) {
+    $objects[$key] = $function();
+  }
+  $count = array_reduce($objects, function($result, $object_group) { return $result + count($object_group); }, 0);
+  drush_print("Ingested $count Objects");
+  return $objects;
+}
+
+/**
+ * Batch update all the ingested objects.
+ */
+function si_batch_update_all(array $objects) {
+  foreach($objects as $key => $grouped_objects) {
+    foreach($grouped_objects as $object) {
+      si_update_object($object, $key, $objects);
+    }
   }
 }
 
@@ -135,7 +171,9 @@ function si_ingest_organization(string $record) {
   $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
   $data = array(
     'pid' => $object->pid
-    // @TODO Identify other relvent information.
+    'id' => $id,
+    'label' => $label,
+    'type' => TYPE_ORGANIZATION,
   );
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -464,9 +502,104 @@ function si_normalize_object_label(string $label) {
 }
 
 /**
+ * Updates the given object using data stored in other objects.
  *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param string $type
+ *   The TYPE of the object properties as defined at the top of this file.
+ * @param array $objects
+ *   Properties that define all the objects.
  */
-function si_update_relationships(array $objects) {
+function si_update_object(array $object, string $type, array $objects) {
+  static $update_functions = array(
+    TYPE_PERSON => 'si_update_person',
+    TYPE_ORGANIZATION => 'si_update_organization',
+    TYPE_EXPEDITION => 'si_update_expedition',
+    TYPE_COLLECTION => 'si_update_collection',
+    TYPE_FIELDBOOK => 'si_update_fieldbook'
+  );
+  $function = $update_functions[$type];
+  $function($object, $objects);
+}
+
+/**
+ * Update the Person Object identified by the properties in $object.
+ *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param array $objects
+ *   Properties that define all the objects.
+ */
+function si_update_person(array $object, array $objects) {
+  drush_print("Updating object: {$object[$label]} ({$object[$pid]})");
+}
+
+/**
+ * Update the Organization Object identified by the properties in $object.
+ *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param array $objects
+ *   Properties that define all the objects.
+ */
+function si_update_organization(array $object, array $objects) {
+}
+
+/**
+ * Update the Expedition Object identified by the properties in $object.
+ *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param array $objects
+ *   Properties that define all the objects.
+ */
+function si_update_expedition(array $object, array $objects) {
+}
+
+/**
+ * Update the Collection Object identified by the properties in $object.
+ *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param array $objects
+ *   Properties that define all the objects.
+ */
+function si_update_collection(array $object, array $objects) {
+
+}
+
+/**
+ * Update the Field Object identified by the properties in $object.
+ *
+ * @param array $object
+ *   Properties that define a object to update.
+ * @param array $objects
+ *   Properties that define all the objects.
+ */
+function si_update_fieldbook(array $object, array $objects) {
+
+}
+
+/**
+ * Searchs the objects for one that matches both the given $id and $type.
+ *
+ * @param string $id
+ *   The id of the given object.
+ * @param string $type
+ *   The type of object, matches the TYPE declarations at the top of the file.
+ * @param array $objects
+ *   Properties that define all the objects.
+ *
+ * @return array
+ *   The object properties we were looking for if found, otherwise FALSE.
+ */
+function si_find_object(string $id, string $type, array $objects) {
+  $objects = $objects[$type];
+  $result = array_filter($objects, function($object) use($id) {
+              return $object['id'] == $id;
+            });
+  return empty($result) ? FALSE : array_shift($result);
 }
 
 /**
@@ -484,7 +617,7 @@ function si_update_relationships(array $objects) {
  *   The URL to the default thumbnail to use with the ingested Objects
  * @param string $type
  *   The type of Object
- */
+ *
 function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
   module_load_include('inc', 'fedora_repository', 'CollectionClass');
   drush_print('Current working directory ' . getcwd());
@@ -529,7 +662,7 @@ function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $inp
  * @param string $input_file
  * @param string $input_xsl
  * @param string $url_to_tn
- */
+ *
 function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
   $xml_record = si_transform($input_file, $input_xsl);
   $type = (string) trim($type);
@@ -598,7 +731,7 @@ function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $u
       }
       break;
   }
-}
+}*/
 
 
 
