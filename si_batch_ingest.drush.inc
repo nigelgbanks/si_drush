@@ -38,7 +38,7 @@ function drush_si_batch_ingest_fieldbooks() {
   $url = variable_get('fedora_base_url', 'http://localhost:8080/fedora');
   drush_print("Batch Ingesting Fieldbooks into Fedora repository: $url");
   $objects = si_batch_ingest_all();
-  si_batch_update_all();
+  si_batch_update_all($objects);
   drush_print("The batch ingest was successful");
 }
 
@@ -47,7 +47,6 @@ function drush_si_batch_ingest_fieldbooks() {
  */
 function drush_si_batch_ingest_fieldbooks_validate() {
   global $user;
-  drush_print(print_r(drush_get_context('cli'), TRUE));
   if($user->uid != 1) {
     return drush_set_error('INVALID_ARGUMENT', dt('Must be the admin user to run this command, specify "-u 1" as an argument.'));
   }
@@ -101,8 +100,7 @@ function si_batch_update_all(array $objects) {
 function si_ingest_records(array $records, string $function) {
   $objects = array();
   foreach($records as $record) {
-    //$objects[] = $function($record);
-    $objects[] = array('pid' => 'thing');
+    $objects[] = $function($record);
   }
   return $objects;
 }
@@ -128,16 +126,12 @@ function si_ingest_persons() {
  *   A description of the ingested object.
  */
 function si_ingest_person(string $record) {
-  list($id, $label, $description) = si_eaccpf_get_info($record);
-  $object = si_create_object($label, $description, 'person.png');
+  $data = si_eaccpf_get_info($record);
+  $object = si_create_object($data, 'person.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:people');
-  $object->add_relationship('hasEacCpfPerson', $id, EAC_PERSON_ID_NS);
+  $object->add_relationship('hasEacCpfPerson', $data['id'], EAC_PERSON_ID_NS);
   $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
-  $data = array(
-    'pid' => $object->pid
-    // @TODO Identify other relvent information.
-  );
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -163,18 +157,12 @@ function si_ingest_organizations() {
  *   A description of the ingested object.
  */
 function si_ingest_organization(string $record) {
-  list($id, $label, $description) = si_eaccpf_get_info($record);
-  $object = si_create_object($label, $description, 'organization.png');
+  $data = si_eaccpf_get_info($record);
+  $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:organizations');
-  $object->add_relationship('hasEacCpfOrganization', $id, EAC_ORGANIZATION_ID_NS);
+  $object->add_relationship('hasEacCpfOrganization', $data['id'], EAC_ORGANIZATION_ID_NS);
   $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
-  $data = array(
-    'pid' => $object->pid
-    'id' => $id,
-    'label' => $label,
-    'type' => TYPE_ORGANIZATION,
-  );
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -200,16 +188,12 @@ function si_ingest_expeditions() {
  *   A description of the ingested object.
  */
 function si_ingest_expedition(string $record) {
-  list($id, $label, $description) = si_eaccpf_get_info($record);
-  $object = si_create_object($label, $description, 'organization.png');
+  $data = si_eaccpf_get_info($record);
+  $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:expeditions');
-  $object->add_relationship('hasEacCpfExpedition', $id, EAC_EXPEDITION_ID_NS);
+  $object->add_relationship('hasEacCpfExpedition', $date['id'], EAC_EXPEDITION_ID_NS);
   $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
-  $data = array(
-    'pid' => $object->pid
-    // @TODO Identify other relvent information.
-  );
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -235,17 +219,12 @@ function si_ingest_collections() {
  *   A description of the ingested object.
  */
 function si_ingest_collection(string $record) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  list($id, $label, $description) = si_ncd_get_info($record);
-  $object = si_create_object($label, $description, 'collection.png');
+  $data = si_ncd_get_info($record);
+  $object = si_create_object($data, 'collection.png');
   si_add_datastream_from_string($object, 'NCD', $record);
   $object->add_relationship('isMemberOfCollection', 'si:collections');
-  $object->add_relationship('hasNcdId', $id, NCD_COLLECTION_ID_NS);
+  $object->add_relationship('hasNcdId', $data['id'], NCD_COLLECTION_ID_NS);
   $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
-  $data = array(
-    'pid' => $object->pid
-    // @TODO Identify other relvent information.
-  );
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -271,19 +250,12 @@ function si_ingest_fieldbooks() {
  *   A description of the ingested object.
  */
 function si_ingest_fieldbook(string $record) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  list($id, $label, $description) = si_mods_get_info($record);
-  $object = si_create_object($label, $description, 'fieldbook.png');
+  $data = si_mods_get_info($record);
+  $object = si_create_object($data, 'fieldbook.png');
   si_add_datastream_from_string($object, 'MODS', $record);
   $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
-  // Find out about this creator stuff.
-  // si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
-  $object->add_relationship('hasModsId', $id, MODS_FIELDBOOK_ID_NS);
+  $object->add_relationship('hasModsId', $data['id'], MODS_FIELDBOOK_ID_NS);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
-  $data = array(
-    'pid' => $object->pid
-    // @TODO Identify other relvent information.
-  );
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -324,9 +296,10 @@ function si_transform($input, $transform, $root_element) {
 /**
  * Creates a object with the given attributes.
  */
-function si_create_object(string $label, string $description, string $thumbnail) {
-  $object = si_create_empty_object($label);
-  si_update_dc_description($object, $description);
+function si_create_object(array &$properties, string $thumbnail) {
+  $object = si_create_empty_object($properties['label']);
+  $properties['pid'] = $object->pid;
+  si_update_dc_description($object, $properties['description']);
   si_add_thumbnail($object, $thumbnail);
   return $object;
 }
@@ -450,7 +423,11 @@ function si_eaccpf_get_info(string $record) {
   $label = (string) array_shift($xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part'));
   $description = (string) array_shift($xml->xpath('//ns:biogHist/ns:p'));
   $label = si_normalize_object_label($label);
-  return array($id, $label, $description);
+  return array(
+    'id' => $id,
+    'label' => si_normalize_object_label($label),
+    'description' => $description
+  );
 }
 
 /**
@@ -470,7 +447,11 @@ function si_ncd_get_info(string $record) {
   $label = (string) array_shift($xml->xpath('//ns:dc_title'));
   $description = (string) array_shift($xml->xpath('//ns:dc_description'));
   $label = si_normalize_object_label($label);
-  return array($id, $label, $description);
+  return array(
+    'id' => $id,
+    'label' => si_normalize_object_label($label),
+    'description' => $description
+  );
 }
 
 /**
@@ -489,8 +470,11 @@ function si_mods_get_info(string $record) {
   $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
   $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
   $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
-  $label = si_normalize_object_label($label);
-  return array($id, $label, $description);
+  return array(
+    'id' => $id,
+    'label' => si_normalize_object_label($label),
+    'description' => $description
+  );
 }
 
 /**
@@ -520,6 +504,7 @@ function si_update_object(array $object, string $type, array $objects) {
     TYPE_FIELDBOOK => 'si_update_fieldbook'
   );
   $function = $update_functions[$type];
+  drush_print("Updating object: {$object['label']} ({$object['pid']})");
   $function($object, $objects);
 }
 
@@ -532,7 +517,7 @@ function si_update_object(array $object, string $type, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_person(array $object, array $objects) {
-  drush_print("Updating object: {$object[$label]} ({$object[$pid]})");
+
 }
 
 /**
