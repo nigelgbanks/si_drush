@@ -31,13 +31,32 @@ function si_batch_ingest_drush_command() {
  */
 function drush_si_batch_ingest_fieldbooks() {
   $url = variable_get('fedora_base_url', 'http://localhost:8080/fedora');
-  drush_print("Ingest Fieldbooks into Fedora repository: $url");
+  drush_print("Batch Ingesting Fieldbooks into Fedora repository: $url");
   $objects = array();
-  $ingest_functions = array('si_ingest_persons', 'si_ingest_organizations', 'si_ingest_expeditions', 'si_ingest_collections', 'si_ingest_items');
+  $ingest_functions = array('si_ingest_persons', 'si_ingest_organizations', 'si_ingest_expeditions', 'si_ingest_collections', 'si_ingest_fieldbooks');
   foreach($ingest_functions as $function) {
     $objects = array_merge($objects, $function());
   }
   return $objects;
+}
+
+/**
+ * Validate the arguments provided to this drush command.
+ */
+function drush_si_batch_ingest_fieldbooks_validate() {
+  global $user;
+  drush_print(print_r(drush_get_context('cli'), TRUE));
+  if($user->uid != 1) {
+    return drush_set_error('INVALID_ARGUMENT', dt('Must be the admin user to run this command, specify "-u 1" as an argument.'));
+  }
+  $valid_uris = array('http://drupal.local/nbanks', 'http://si-islandora.si.edu', 'http://si-islandora.si.edu/test'); // @TODO remove 'http://drupal.local/nbanks'
+  $cli = drush_get_context('cli');
+  if(!isset($cli['uri'])) {
+    return drush_set_error('INVALID_ARGUMENT', dt('The argument --uri is required. Please use either "http://si-islandora.si.edu" or "http://si-islandora.si.edu/test"'));
+  }
+  else if(array_search($cli['uri'], $valid_uris) === FALSE) {
+    return drush_set_error('INVALID_ARGUMENT', dt('The --uri given is not valid. Please use either "http://si-islandora.si.edu" or "http://si-islandora.si.edu/test"'));
+  }
 }
 
 /**
@@ -46,7 +65,8 @@ function drush_si_batch_ingest_fieldbooks() {
 function si_ingest_records(array $records, string $function) {
   $objects = array();
   foreach($records as $record) {
-    $objects[] = $function($record);
+    //$objects[] = $function($record);
+    $objects[] = array('pid' => 'thing');
   }
   return $objects;
 }
@@ -193,33 +213,33 @@ function si_ingest_collection(string $record) {
 }
 
 /**
- * Generates/Ingests MODS records for each row in the FileMaker Pro dump of the Item Records.
+ * Generates/Ingests MODS records for each row in the FileMaker Pro dump of the Fieldbook Records.
  *
  * @return array
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
-function si_ingest_items() {
-  $records = si_transform('item.xml', 'MODS_item.xsl', 'mods');
-  return si_ingest_records($records, 'si_ingest_item');
+function si_ingest_fieldbooks() {
+  $records = si_transform('fieldbook.xml', 'MODS_fieldbook.xsl', 'mods');
+  return si_ingest_records($records, 'si_ingest_fieldbook');
 }
 
 /**
- * Ingests a single item record.
+ * Ingests a single fieldbook record.
  *
  * @param string $record
- *   The MODS item record to ingest.
+ *   The MODS fedora record to ingest.
  *
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_item(string $record) {
+function si_ingest_fieldbook(string $record) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   list($id, $label, $description) = si_mods_get_info($record);
   $object = si_create_object($label, $description, 'fieldbook.png');
   si_add_datastream_from_string($object, 'MODS', $record);
   $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
   // Find out about this creator stuff.
-  //si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
+  // si_update_mods_creator($xml); //get the name of the creator and use it in the mods creator currently has values like eac514 need to get the actual username
   $object->add_relationship('hasModsId', $id, MODS_FIELDBOOK_ID_NS);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
   $data = array(
@@ -246,6 +266,7 @@ function si_ingest_item(string $record) {
  *   Each record as a string.
  */
 function si_transform($input, $transform, $root_element) {
+  drush_print("Transforming $input with $transform");
   $directory = dirname(__FILE__);
   $xslt = new XSLTProcessor;
   $xslt->importStyleSheet(DOMDocument::load("$directory/xsl/$transform"));
@@ -257,6 +278,8 @@ function si_transform($input, $transform, $root_element) {
   foreach($records as &$record) {
     $record .= $closing_tag;
   }
+  $count = count($records);
+  drush_print("Transformed $count records in $input");
   return $records;
 }
 
