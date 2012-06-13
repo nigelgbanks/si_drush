@@ -560,7 +560,10 @@ function si_update_object(array $object, string $type, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_person(array $object, array $objects) {
-
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
+  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
 }
 
 /**
@@ -572,7 +575,10 @@ function si_update_person(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_organization(array $object, array $objects) {
-
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
+  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
 }
 
 /**
@@ -584,7 +590,10 @@ function si_update_organization(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_expedition(array $object, array $objects) {
-
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
+  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
 }
 
 /**
@@ -596,7 +605,10 @@ function si_update_expedition(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_collection(array $object, array $objects) {
-
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
+  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
 }
 
 /**
@@ -608,16 +620,24 @@ function si_update_collection(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_fieldbook(array $object, array $objects) {
-  module_load_include('module', 'fedora_repository', 'api/fedora_item');
-  $item = new Fedora_Item($object['pid']);
-  $mods = $item->get_datastream_dissemination('MODS');
-  $xml = simplexml_load_string($mods);
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('ns', $namespaces['']);
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
   si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
   si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
-  drush_print($xml->asXML());
-  $item->modify_datastream_by_value($xml->asXML(), 'MODS', 'MODS', 'text/xml');
+  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+}
+
+/**
+ * Fetchs the object and its metadata.
+ */
+function si_get_objects_item_and_metadata(array $object) {
+  module_load_include('module', 'fedora_repository', 'api/fedora_item');
+  $item = new Fedora_Item($object['pid']);
+  $dsid = si_get_dsid_from_object_id($object['id']);
+  $ds = $item->get_datastream_dissemination($dsid);
+  $xml = simplexml_load_string($ds);
+  $namespaces = $xml->getDocNamespaces();
+  $xml->registerXPathNamespace('ns', $namespaces['']);
+  return array($item, $dsid, $xml);
 }
 
 /**
@@ -651,7 +671,7 @@ function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, str
  *   The object properties we were looking for if found, otherwise FALSE.
  */
 function si_find_object(string $id, array $objects) {
-  $type = si_id_type($id);
+  $type = si_get_type_from_object_id($id);
   $objects = $objects[$type];
   $result = array_filter($objects, function($object) use($id) {
               return $object['id'] == $id;
@@ -662,13 +682,22 @@ function si_find_object(string $id, array $objects) {
 /**
  * Returns the type for the ID.
  */
-function si_id_type(string $id) {
+function si_get_type_from_object_id(string $id) {
   $types = array(TYPE_PERSON, TYPE_ORGANIZATION, TYPE_EXPEDITION, TYPE_COLLECTION, TYPE_FIELDBOOK);
   foreach($types as $type) {
     if(strpos($id, $type) !== FALSE) {
       return $type;
     }
   }
+}
+
+/**
+ *
+ */
+function si_get_dsid_from_object_id(string $id) {
+  $dsid = array(TYPE_PERSON => 'EAC-CPF', TYPE_ORGANIZATION => 'EAC-CPF', TYPE_EXPEDITION =>'EAC-CPF', TYPE_COLLECTION => 'NCD', TYPE_FIELDBOOK => 'MODS');
+  $type = si_get_type_from_object_id($id);
+  return $dsid[$type];
 }
 
 /**
