@@ -10,11 +10,11 @@ define('EACE_ID_PREDICATE', 'eaceId');
 define('NCD_ID_PREDICATE', 'ncdId');
 define('MODS_ID_PREDICATE', 'modsId');
 define('ALT_ID_PREDICATE', 'altId');
-define('TYPE_PERSON', 'person'); // Smaller string takes up less space.
-define('TYPE_ORGANIZATION', 'organization');
-define('TYPE_EXPEDITION', 'expedition');
-define('TYPE_COLLECTION', 'collection');
-define('TYPE_FIELDBOOK', 'fieldbook');
+define('TYPE_PERSON', 'EACP'); // Smaller string takes up less space.
+define('TYPE_ORGANIZATION', 'EACO');
+define('TYPE_EXPEDITION', 'EACE');
+define('TYPE_COLLECTION', 'NCD');
+define('TYPE_FIELDBOOK', 'MODS');
 
 /**
  * Defines the drush command for ingesting Fieldbook data.
@@ -478,11 +478,13 @@ function si_ncd_get_info(string $record) {
   $namespaces = $xml->getDocNamespaces();
   $xml->registerXPathNamespace('ns', $namespaces['']);
   $id = (string) array_shift($xml->xpath('//ns:CollectionId'));
+  $alt_id = (string) array_shift($xml->xpath('//ns:AlternativeIds/ns:Identifier[1]'));
   $label = (string) array_shift($xml->xpath('//ns:dc_title'));
   $description = (string) array_shift($xml->xpath('//ns:dc_description'));
   $label = si_normalize_object_label($label);
   return array(
     'id' => $id,
+    'alt_id' => $alt_id,
     'label' => si_normalize_object_label($label),
     'description' => $description
   );
@@ -507,14 +509,14 @@ function si_mods_get_info(string $record) {
   $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
   $to_string = function($o) { return (string) $o; };
   $related_names = array_map($to_string, $xml->xpath('//ns:name/@valueURI'));
-  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/@valueURI'));
+  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/ns:titleInfo/@valueURI'));
   return array(
     'id' => $id,
     'alt_id' => $alt_id,
     'label' => si_normalize_object_label($label),
     'description' => $description,
     'related_names' => $related_names,
-    'releated_items' => $related_items,
+    'related_items' => $related_items,
   );
 }
 
@@ -606,7 +608,33 @@ function si_update_collection(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_fieldbook(array $object, array $objects) {
+  module_load_include('module', 'fedora_repository', 'api/fedora_item');
+  $item = new Fedora_Item($object['pid']);
+  $mods = $item->get_datastream_dissemination('MODS');
+  $xml = simplexml_load_string($mods);
+  $namespaces = $xml->getDocNamespaces();
+  $xml->registerXPathNamespace('ns', $namespaces['']);
+  si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
+  si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  drush_print($xml->asXML());
+  $item->modify_datastream_by_value($xml->asXML(), 'MODS', 'MODS', 'text/xml');
+}
 
+/**
+ * Updates the references found at $xpath.
+ */
+function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, string $xpath, array $objects) {
+  foreach($ids as $id) {
+    if($object = si_find_object($id, $objects)) {
+      $label = $object['label'];
+      $query = str_replace('%id', $id, $xpath);
+      drush_print($query);
+      $elements = $xml->xpath($query);
+      foreach($elements as $element) {
+        $element->{0} = $label;
+      }
+    }
+  }
 }
 
 /**
@@ -622,12 +650,25 @@ function si_update_fieldbook(array $object, array $objects) {
  * @return array
  *   The object properties we were looking for if found, otherwise FALSE.
  */
-function si_find_object(string $id, string $type, array $objects) {
+function si_find_object(string $id, array $objects) {
+  $type = si_id_type($id);
   $objects = $objects[$type];
   $result = array_filter($objects, function($object) use($id) {
               return $object['id'] == $id;
             });
   return empty($result) ? FALSE : array_shift($result);
+}
+
+/**
+ * Returns the type for the ID.
+ */
+function si_id_type(string $id) {
+  $types = array(TYPE_PERSON, TYPE_ORGANIZATION, TYPE_EXPEDITION, TYPE_COLLECTION, TYPE_FIELDBOOK);
+  foreach($types as $type) {
+    if(strpos($id, $type) !== FALSE) {
+      return $type;
+    }
+  }
 }
 
 /**
