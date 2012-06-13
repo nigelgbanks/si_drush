@@ -9,6 +9,7 @@ define('EACO_ID_PREDICATE', 'eacoId');
 define('EACE_ID_PREDICATE', 'eaceId');
 define('NCD_ID_PREDICATE', 'ncdId');
 define('MODS_ID_PREDICATE', 'modsId');
+define('ALT_ID_PREDICATE', 'altId');
 define('TYPE_PERSON', 'person'); // Smaller string takes up less space.
 define('TYPE_ORGANIZATION', 'organization');
 define('TYPE_EXPEDITION', 'expedition');
@@ -131,8 +132,8 @@ function si_ingest_person(string $record) {
   $object = si_create_object($data, 'person.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:people');
-  $object->add_relationship(EACP_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
+  si_add_relation_literal($object, EACP_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -162,8 +163,8 @@ function si_ingest_organization(string $record) {
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:organizations');
-  $object->add_relationship(EACO_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
+  si_add_relation_literal($object, EACO_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -193,8 +194,8 @@ function si_ingest_expedition(string $record) {
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:expeditions');
-  $object->add_relationship(EACE_ID_PREDICATE, $date['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
+  si_add_relation_literal($object, EACE_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -224,8 +225,8 @@ function si_ingest_collection(string $record) {
   $object = si_create_object($data, 'collection.png');
   si_add_datastream_from_string($object, 'NCD', $record);
   $object->add_relationship('isMemberOfCollection', 'si:collections');
-  $object->add_relationship(NCD_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
+  si_add_relation_literal($object, NCD_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -254,9 +255,12 @@ function si_ingest_fieldbook(string $record) {
   $data = si_mods_get_info($record);
   $object = si_create_object($data, 'fieldbook.png');
   si_add_datastream_from_string($object, 'MODS', $record);
-  $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
-  $object->add_relationship(MODS_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
+  $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
+  si_add_relation_literal($object, MODS_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  if(!empty($data['alt_id'])) {
+    si_add_relation_literal($object, ALT_ID_PREDICATE, $data['alt_id'], SMITHSONIAN_ONTOLOGY_URI);
+  }
   $object->forget(); // Prevent Memory Leaks
   return $data;
 }
@@ -408,6 +412,35 @@ function si_add_datastream_from_string(FedoraItem $object, string $dsid, string 
 }
 
 /**
+ * Adds a literal value to the RELS-EXT datastream so that it can be used in the Resource Index.
+ *
+ * @param Fedora_Item $object
+ *   The object to add the relationship to.
+ * @param string $predicate
+ *   The relationship predicate.
+ * @param string $literal
+ *   The value of the relationship
+ * @param string $uri
+ *   The namespace in which to add the relationship.
+ */
+function si_add_relation_literal(FedoraItem $object, string $predicate, string $literal, string $uri) {
+  $ds_list = $object->get_datastreams_list_as_array();
+  if (empty($ds_list['RELS-EXT'])) {
+    $empty_rels_ext =
+	"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+          <rdf:Description rdf:about='info:fedora/{$object->pid}'>
+          </rdf:Description>
+        </rdf:RDF>";
+    $object->add_datastream_from_string($empty_rels_ext, 'RELS-EXT', 'Fedora object-to-object relationship metadata', 'text/xml', 'X');
+  }
+  $rels_ext = $object->get_datastream_dissemination('RELS-EXT');
+  $xml = new SimpleXMLElement($rels_ext);
+  $description = array_shift($xml->xpath('//*[local-name() = "Description" or local-name() = "description"]'));
+  $relationship = $description->addChild($predicate, $literal, $uri);
+  $object->modify_datastream_by_value($xml->asXML(), 'RELS-EXT', "Fedora Object-to-Object Relationship Metadata", 'text/xml');
+}
+
+/**
  * Gets useful information from the given eac-cpf record.
  *
  * @param string $record
@@ -469,15 +502,17 @@ function si_mods_get_info(string $record) {
   $namespaces = $xml->getDocNamespaces();
   $xml->registerXPathNamespace('ns', $namespaces['']);
   $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
+  $alt_id = (string) array_shift($xml->xpath('/ns:mods/ns:identifier[@type="accessionNumber"]'));
   $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
   $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
-  $to_string = function($o) { return (string) $o; }
-  $related_names = array_map($to_string, $xml->xpath('//ns:name/@ID'));
-  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/@ID'));
+  $to_string = function($o) { return (string) $o; };
+  $related_names = array_map($to_string, $xml->xpath('//ns:name/@valueURI'));
+  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/@valueURI'));
   return array(
     'id' => $id,
+    'alt_id' => $alt_id,
     'label' => si_normalize_object_label($label),
-    'description' => $description
+    'description' => $description,
     'related_names' => $related_names,
     'releated_items' => $related_items,
   );

@@ -55,13 +55,6 @@
                 <xsl:with-param name="type">accessionNumber</xsl:with-param>
                 <xsl:with-param name="value" select="fmp:i_altID"/>
             </xsl:call-template>
-            <xsl:for-each select="fmp:i_expedition_name/fmp:DATA[normalize-space(text())]">
-                <xsl:call-template name="relatedItem">
-                    <xsl:with-param name="value" select="text()"/>
-                    <xsl:with-param name="type">references</xsl:with-param>
-                    <xsl:with-param name="displayLabel">Expedition</xsl:with-param>
-                </xsl:call-template>
-            </xsl:for-each>
             <xsl:call-template name="note">
                 <xsl:with-param name="value" select="fmp:i_note"/>
             </xsl:call-template>
@@ -106,6 +99,12 @@
                 <xsl:with-param name="subjects"
                     select="fmp:i_subject_topic/fmp:DATA[normalize-space(text())]"/>
                 <xsl:with-param name="type">topic</xsl:with-param>
+            </xsl:call-template>
+            <xsl:call-template name="subjects">
+                <xsl:with-param name="subjects" select="fmp:i_expedition_name/fmp:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="type">conference</xsl:with-param>
+                <xsl:with-param name="value" select="text()"/>
+                <xsl:with-param name="displayLabel">Expedition</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
                 <xsl:with-param name="subjects"
@@ -198,6 +197,11 @@
             <xsl:call-template name="titleInfo">
                 <xsl:with-param name="title" select="$value"/>
             </xsl:call-template>
+            <xsl:if test="$isID = 'true'">
+                <xsl:call-template name="identifier">
+                    <xsl:with-param name="value" select="$value"/>
+                </xsl:call-template>
+            </xsl:if>
         </relatedItem>
     </xsl:template>
     <!-- Name -->
@@ -468,9 +472,11 @@
     <xsl:template name="subjects">
         <xsl:param name="subjects"/>
         <xsl:param name="type"/>
+        <xsl:param name="displayLabel"/>
         <xsl:for-each select="$subjects">
             <xsl:call-template name="subject">
                 <xsl:with-param name="type" select="$type"/>
+                <xsl:with-param name="displayLabel" select="$displayLabel"/>
                 <xsl:with-param name="value">
                     <xsl:call-template name="getTerm">
                         <xsl:with-param name="input" select="text()"/>
@@ -498,6 +504,7 @@
         <xsl:param name="value"/>
         <xsl:param name="authority"/>
         <xsl:param name="authority_id"/>
+        <xsl:param name="displayLabel"/>
         <subject>
             <xsl:choose>
                 <xsl:when test="$type = 'topic'">
@@ -519,14 +526,48 @@
                     <xsl:call-template name="name">
                         <xsl:with-param name="type">personal</xsl:with-param>
                         <xsl:with-param name="name" select="$value"/>
-                        <xsl:with-param name="displayLabel">Person</xsl:with-param>
+                        <xsl:with-param name="displayLabel">
+                            <xsl:choose>
+                                <xsl:when test="normalize-space($displayLabel)">
+                                    <xsl:value-of select="$displayLabel"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:text>Person</xsl:text>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:with-param>
                     </xsl:call-template>
                 </xsl:when>
                 <xsl:when test="$type = 'organization'">
                     <xsl:call-template name="name">
                         <xsl:with-param name="type">corporate</xsl:with-param>
                         <xsl:with-param name="name" select="$value"/>
-                        <xsl:with-param name="displayLabel">Organization</xsl:with-param>
+                        <xsl:with-param name="displayLabel">
+                            <xsl:choose>
+                                <xsl:when test="normalize-space($displayLabel)">
+                                    <xsl:value-of select="$displayLabel"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:text>Organization</xsl:text>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:with-param>
+                    </xsl:call-template>
+                </xsl:when>
+                <xsl:when test="$type = 'conference'">
+                    <xsl:call-template name="name">
+                        <xsl:with-param name="type">conference</xsl:with-param>
+                        <xsl:with-param name="name" select="$value"/>
+                        <xsl:with-param name="displayLabel">
+                            <xsl:choose>
+                                <xsl:when test="normalize-space($displayLabel)">
+                                    <xsl:value-of select="$displayLabel"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:text>Conference</xsl:text>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:with-param>
                     </xsl:call-template>
                 </xsl:when>
             </xsl:choose>
