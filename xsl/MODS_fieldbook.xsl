@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--takes data exported from Smithsonian's filemaker db and transforms to EAC.  This xslt works with the filemaker person records-->
-<xsl:stylesheet version="1.0"
-    xmlns="http://www.loc.gov/mods/v3"
+<xsl:stylesheet version="1.0" xmlns="http://www.loc.gov/mods/v3"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:fmp="http://www.filemaker.com/fmpdsoresult" exclude-result-prefixes="fmp">
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
     <xsl:include href="Utils.xsl"/>
@@ -16,17 +14,18 @@
     </xsl:template>
     <!-- MODS-->
     <xsl:template name="mods">
-        <mods xmlns="http://www.loc.gov/mods/v3"
-            xmlns:mods="http://www.loc.gov/mods/v3"
+        <mods xmlns="http://www.loc.gov/mods/v3" xmlns:mods="http://www.loc.gov/mods/v3"
             xmlns:xlink="http://www.w3.org/1999/xlink"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd" ID="{fmp:itemID}">
+            xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd"
+            ID="{fmp:itemID}">
             <abstract>
                 <xsl:value-of select="normalize-space(fmp:i_abstract)"/>
             </abstract>
             <xsl:call-template name="titleInfo">
                 <xsl:with-param name="type" select="fmp:i_title_type"/>
-                <xsl:with-param name="title" select="fmp:i_title/descendant-or-self::node()[text() != '' and not(child::*)]"/>
+                <xsl:with-param name="title"
+                    select="fmp:i_title/descendant-or-self::node()[text() != '' and not(child::*)]"/>
                 <xsl:with-param name="href" select="fmp:i_href"/>
             </xsl:call-template>
             <xsl:call-template name="titleInfo">
@@ -38,6 +37,7 @@
                     <xsl:with-param name="name" select="."/>
                     <xsl:with-param name="type">personal</xsl:with-param>
                     <xsl:with-param name="role">creator</xsl:with-param>
+                    <xsl:with-param name="displayLabel">Creator</xsl:with-param>
                 </xsl:call-template>
             </xsl:for-each>
             <xsl:for-each select="fmp:i_contributor/fmp:DATA[normalize-space(text())]">
@@ -45,6 +45,7 @@
                     <xsl:with-param name="name" select="."/>
                     <xsl:with-param name="type">personal</xsl:with-param>
                     <xsl:with-param name="role">contributor</xsl:with-param>
+                    <xsl:with-param name="displayLabel">Contributor</xsl:with-param>
                 </xsl:call-template>
             </xsl:for-each>
             <xsl:call-template name="identifier">
@@ -55,10 +56,11 @@
                 <xsl:with-param name="value" select="fmp:i_altID"/>
             </xsl:call-template>
             <xsl:for-each select="fmp:i_expedition_name/fmp:DATA[normalize-space(text())]">
-                <xsl:call-template name="identifier">
-                    <xsl:with-param name="type">expedition</xsl:with-param>
+                <xsl:call-template name="relatedItem">
                     <xsl:with-param name="value" select="text()"/>
-                </xsl:call-template>    
+                    <xsl:with-param name="type">references</xsl:with-param>
+                    <xsl:with-param name="displayLabel">Expedition</xsl:with-param>
+                </xsl:call-template>
             </xsl:for-each>
             <xsl:call-template name="note">
                 <xsl:with-param name="value" select="fmp:i_note"/>
@@ -72,7 +74,7 @@
             <xsl:call-template name="note">
                 <xsl:with-param name="type">href</xsl:with-param>
                 <xsl:with-param name="value" select="fmp:i_href"/>
-            </xsl:call-template>            
+            </xsl:call-template>
             <xsl:call-template name="recordInfo"/>
             <xsl:call-template name="location"/>
             <xsl:call-template name="originInfo"/>
@@ -86,37 +88,48 @@
                 <xsl:value-of select="fmp:i_access_condition"/>
             </accessCondition>
             <xsl:if test="normalize-space(fmp:i_collection)">
-                <relatedItem type="host" ID="{fmp:i_collection}"/>
+                <xsl:call-template name="relatedItem">
+                    <xsl:with-param name="value" select="fmp:i_collection"/>
+                    <xsl:with-param name="type">host</xsl:with-param>
+                    <xsl:with-param name="displayLabel">Collection</xsl:with-param>
+                </xsl:call-template>
             </xsl:if>
             <xsl:for-each select="fmp:i_related_item/fmp:DATA[normalize-space(text())]">
-                <relatedItem>
-                    <xsl:call-template name="titleInfo">
-                        <xsl:with-param name="title" select="text()"/>
-                    </xsl:call-template>
-                </relatedItem>
+                <xsl:call-template name="relatedItem">
+                    <xsl:with-param name="value" select="text()"/>
+                    <xsl:with-param name="type">references</xsl:with-param>
+                    <xsl:with-param name="displayLabel">Fieldbook</xsl:with-param>
+                </xsl:call-template>
             </xsl:for-each>
             <xsl:call-template name="genres"/>
             <xsl:call-template name="subjects">
-                <xsl:with-param name="subjects" select="fmp:i_subject_topic/fmp:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="subjects"
+                    select="fmp:i_subject_topic/fmp:DATA[normalize-space(text())]"/>
                 <xsl:with-param name="type">topic</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
-                <xsl:with-param name="subjects" select="fmp:i_subject_geographical/fmp:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="subjects"
+                    select="fmp:i_subject_geographical/fmp:DATA[normalize-space(text())]"/>
                 <xsl:with-param name="type">geographic</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
-                <xsl:with-param name="subjects" select="fmp:i_subject_person/fmp:DATA[normalize-space(text())]"/>
-                    <xsl:with-param name="type">person</xsl:with-param>
+                <xsl:with-param name="subjects"
+                    select="fmp:i_subject_person/fmp:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="type">person</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
-                <xsl:with-param name="subjects" select="fmp:i_subject_organization/fmp:DATA[normalize-space(text())]"/>
+                <xsl:with-param name="subjects"
+                    select="fmp:i_subject_organization/fmp:DATA[normalize-space(text())]"/>
                 <xsl:with-param name="type">organization</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="langauges">
                 <xsl:with-param name="languages" select="fmp:i_language1 | fmp:i_language2"/>
-                <xsl:with-param name="language_codes" select="fmp:i_language1_code | fmp:i_language2_code"/>
-                <xsl:with-param name="scripts" select="fmp:i_language1_script | fmp:i_language2_script"/>
-                <xsl:with-param name="script_codes" select="fmp:i_language1_script_code | fmp:i_language2_script_code"/>
+                <xsl:with-param name="language_codes"
+                    select="fmp:i_language1_code | fmp:i_language2_code"/>
+                <xsl:with-param name="scripts"
+                    select="fmp:i_language1_script | fmp:i_language2_script"/>
+                <xsl:with-param name="script_codes"
+                    select="fmp:i_language1_script_code | fmp:i_language2_script_code"/>
             </xsl:call-template>
         </mods>
     </xsl:template>
@@ -124,10 +137,30 @@
     <xsl:template name="titleInfo">
         <xsl:param name="type"/>
         <xsl:param name="title"/>
+        <xsl:variable name="isID">
+            <xsl:call-template name="isID">
+                <xsl:with-param name="value" select="$title"/>
+            </xsl:call-template>
+        </xsl:variable>
         <titleInfo>
             <xsl:call-template name="titleType">
                 <xsl:with-param name="value" select="$type"/>
             </xsl:call-template>
+            <xsl:if test="$isID = 'true'">
+                <xsl:attribute name="authority">
+                    <xsl:call-template name="getfedoraAuthority">
+                        <xsl:with-param name="value" select="$title"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+                <xsl:attribute name="authorityURI">
+                    <xsl:call-template name="getfedoraAuthorityURI">
+                        <xsl:with-param name="value" select="$title"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+                <xsl:attribute name="valueURI">
+                    <xsl:value-of select="$title"/>
+                </xsl:attribute>
+            </xsl:if>            
             <title>
                 <xsl:value-of select="$title"/>
             </title>
@@ -151,11 +184,28 @@
             </xsl:when>
         </xsl:choose>
     </xsl:template>
+    <!-- RelatedItem -->
+    <xsl:template name="relatedItem">
+        <xsl:param name="type"/> <!-- Isn't checked since its not coming from the data -->
+        <xsl:param name="value"/>
+        <xsl:param name="displayLabel"/>        
+        <xsl:variable name="isID">
+            <xsl:call-template name="isID">
+                <xsl:with-param name="value" select="$value"/>
+            </xsl:call-template>
+        </xsl:variable>
+        <relatedItem type="{$type}" displayLabel="{$displayLabel}">
+            <xsl:call-template name="titleInfo">
+                <xsl:with-param name="title" select="$value"/>
+            </xsl:call-template>
+        </relatedItem>
+    </xsl:template>
     <!-- Name -->
     <xsl:template name="name">
         <xsl:param name="name"/>
         <xsl:param name="type"/>
         <xsl:param name="role"/>
+        <xsl:param name="displayLabel"/>
         <xsl:variable name="value">
             <xsl:call-template name="getTerm">
                 <xsl:with-param name="input" select="$name"/>
@@ -168,15 +218,39 @@
                 <xsl:with-param name="index" select="2"/>
             </xsl:call-template>
         </xsl:variable>
-        <name type="personal">
+        <xsl:variable name="isID">
+            <xsl:call-template name="isID">
+                <xsl:with-param name="value" select="$value"/>
+            </xsl:call-template>
+        </xsl:variable>
+        <name>
             <xsl:call-template name="nameType">
                 <xsl:with-param name="value" select="$type"/>
             </xsl:call-template>
-            <xsl:if test="substring($value, 1, 4) = 'EACP'">
-                <xsl:attribute name="ID"><xsl:value-of select="$value"/></xsl:attribute>
+            <xsl:if test="$isID = 'true'">
+                <xsl:attribute name="authority">
+                    <xsl:call-template name="getfedoraAuthority">
+                        <xsl:with-param name="value" select="$value"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+                <xsl:attribute name="authorityURI">
+                    <xsl:call-template name="getfedoraAuthorityURI">
+                        <xsl:with-param name="value" select="$value"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+                <xsl:attribute name="valueURI">
+                    <xsl:value-of select="$value"/>
+                </xsl:attribute>
             </xsl:if>
-            <xsl:if test="normalize-space($authority)">
-                <xsl:attribute name="authority"><xsl:value-of select="$authority"/></xsl:attribute>
+            <xsl:if test="$isID = 'false' and normalize-space($authority)">
+                <xsl:attribute name="authority">
+                    <xsl:value-of select="$authority"/>
+                </xsl:attribute>
+            </xsl:if>
+            <xsl:if test="normalize-space($displayLabel)">
+                <xsl:attribute name="displayLabel">
+                    <xsl:value-of select="$displayLabel"/>
+                </xsl:attribute>
             </xsl:if>
             <xsl:if test="$role">
                 <role>
@@ -186,7 +260,7 @@
                 </role>
             </xsl:if>
             <namePart>
-                <xsl:value-of select="$value"/>
+                <xsl:value-of select="$value"/> <!-- If is ID it will be replaced as part of the batch process-->
             </namePart>
         </name>
     </xsl:template>
@@ -233,7 +307,7 @@
                     </xsl:attribute>
                 </xsl:if>
                 <xsl:value-of select="$value"/>
-            </identifier>    
+            </identifier>
         </xsl:if>
     </xsl:template>
     <!-- Date Qualifier -->
@@ -241,13 +315,13 @@
         <xsl:param name="value"/>
         <xsl:choose>
             <xsl:when test="$value = 'approximate'">
-                <xsl:attribute name="qualifier">approximate</xsl:attribute>        
+                <xsl:attribute name="qualifier">approximate</xsl:attribute>
             </xsl:when>
             <xsl:when test="$value = 'inferred'">
-                <xsl:attribute name="qualifier">inferred</xsl:attribute>        
+                <xsl:attribute name="qualifier">inferred</xsl:attribute>
             </xsl:when>
             <xsl:when test="$value = 'questionable'">
-                <xsl:attribute name="qualifier">questionable</xsl:attribute>        
+                <xsl:attribute name="qualifier">questionable</xsl:attribute>
             </xsl:when>
         </xsl:choose>
     </xsl:template>
@@ -289,7 +363,7 @@
                 <xsl:when test="$value = 'mixed material'">
                     <xsl:text>mixed material</xsl:text>
                 </xsl:when>
-                <xsl:otherwise></xsl:otherwise>
+                <xsl:otherwise/>
             </xsl:choose>
         </typeOfResource>
     </xsl:template>
@@ -434,7 +508,7 @@
                 <xsl:when test="$type = 'geographic'">
                     <geographic authority="{$authority}">
                         <xsl:if test="normalize-space($authority_id)">
-                            <xsl:attribute name="authorityURI">
+                            <xsl:attribute name="valueURI">
                                 <xsl:value-of select="$authority_id"/>
                             </xsl:attribute>
                         </xsl:if>
@@ -442,25 +516,18 @@
                     </geographic>
                 </xsl:when>
                 <xsl:when test="$type = 'person'">
-                    <name type="personal">
-                        <namePart>
-                            <xsl:value-of select="$value"/>    
-                        </namePart>
-                    </name>
+                    <xsl:call-template name="name">
+                        <xsl:with-param name="type">personal</xsl:with-param>
+                        <xsl:with-param name="name" select="$value"/>
+                        <xsl:with-param name="displayLabel">Person</xsl:with-param>
+                    </xsl:call-template>
                 </xsl:when>
                 <xsl:when test="$type = 'organization'">
-                    <name type="corporate">
-                        <namePart>
-                            <xsl:value-of select="$value"/>    
-                        </namePart>
-                    </name>
-                </xsl:when>
-                <xsl:when test="$type = 'vessel'">
-                    <name type="corporate">
-                        <namePart>
-                            <xsl:value-of select="$value"/>    
-                        </namePart>
-                    </name>
+                    <xsl:call-template name="name">
+                        <xsl:with-param name="type">corporate</xsl:with-param>
+                        <xsl:with-param name="name" select="$value"/>
+                        <xsl:with-param name="displayLabel">Organization</xsl:with-param>
+                    </xsl:call-template>
                 </xsl:when>
             </xsl:choose>
         </subject>
@@ -494,10 +561,10 @@
                 <xsl:value-of select="$language"/>
             </languageTerm>
             <scriptTerm type="code">
-                <xsl:value-of select="$script_code"/>    
+                <xsl:value-of select="$script_code"/>
             </scriptTerm>
             <scriptTerm type="text">
-                <xsl:value-of select="$script"/>    
+                <xsl:value-of select="$script"/>
             </scriptTerm>
         </language>
     </xsl:template>
@@ -535,7 +602,9 @@
             <xsl:value-of select="$date"/>
         </xsl:if>
         <xsl:if test="string-length($date) = 8">
-            <xsl:value-of select="concat(substring($date, 1, 4), '-', substring($date, 5, 2), '-', substring($date, 7, 2))"/>
+            <xsl:value-of
+                select="concat(substring($date, 1, 4), '-', substring($date, 5, 2), '-', substring($date, 7, 2))"
+            />
         </xsl:if>
     </xsl:template>
 </xsl:stylesheet>

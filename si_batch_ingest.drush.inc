@@ -3,16 +3,17 @@
 /**
  * Batch ingest script for Smithsonian Fieldbook data.
  */
-define('EAC_PERSON_ID_NS', 'info:islandora/islandora-system:def/eacPersonId#');
-define('EAC_EXPEDITION_ID_NS', 'info:islandora/islandora-system:def/eacExpeditionId#');
-define('EAC_ORGANIZATION_ID_NS', 'info:islandora/islandora-system:def/eacOrganizationId#');
-define('NCD_COLLECTION_ID_NS', 'info:islandora/islandora-system:def/ncdCollectionId#');
-define('MODS_FIELDBOOK_ID_NS', 'info:islandora/islandora-system:def/modsFieldbookId#');
-define('TYPE_PERSON', 'p'); // Smaller string takes up less space.
-define('TYPE_ORGANIZATION', 'o');
-define('TYPE_EXPEDITION', 'e');
-define('TYPE_COLLECTION', 'c');
-define('TYPE_FIELDBOOK', 'f');
+define('SMITHSONIAN_ONTOLOGY_URI', 'info:islandora/islandora-system:def/smithsonian#');
+define('EACP_ID_PREDICATE', 'eacpId');
+define('EACO_ID_PREDICATE', 'eacoId');
+define('EACE_ID_PREDICATE', 'eaceId');
+define('NCD_ID_PREDICATE', 'ncdId');
+define('MODS_ID_PREDICATE', 'modsId');
+define('TYPE_PERSON', 'person'); // Smaller string takes up less space.
+define('TYPE_ORGANIZATION', 'organization');
+define('TYPE_EXPEDITION', 'expedition');
+define('TYPE_COLLECTION', 'collection');
+define('TYPE_FIELDBOOK', 'fieldbook');
 
 /**
  * Defines the drush command for ingesting Fieldbook data.
@@ -130,7 +131,7 @@ function si_ingest_person(string $record) {
   $object = si_create_object($data, 'person.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:people');
-  $object->add_relationship('hasEacCpfPerson', $data['id'], EAC_PERSON_ID_NS);
+  $object->add_relationship(EACP_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -161,7 +162,7 @@ function si_ingest_organization(string $record) {
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:organizations');
-  $object->add_relationship('hasEacCpfOrganization', $data['id'], EAC_ORGANIZATION_ID_NS);
+  $object->add_relationship(EACO_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -192,7 +193,7 @@ function si_ingest_expedition(string $record) {
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:expeditions');
-  $object->add_relationship('hasEacCpfExpedition', $date['id'], EAC_EXPEDITION_ID_NS);
+  $object->add_relationship(EACE_ID_PREDICATE, $date['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -223,7 +224,7 @@ function si_ingest_collection(string $record) {
   $object = si_create_object($data, 'collection.png');
   si_add_datastream_from_string($object, 'NCD', $record);
   $object->add_relationship('isMemberOfCollection', 'si:collections');
-  $object->add_relationship('hasNcdId', $data['id'], NCD_COLLECTION_ID_NS);
+  $object->add_relationship(NCD_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -254,7 +255,7 @@ function si_ingest_fieldbook(string $record) {
   $object = si_create_object($data, 'fieldbook.png');
   si_add_datastream_from_string($object, 'MODS', $record);
   $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
-  $object->add_relationship('hasModsId', $data['id'], MODS_FIELDBOOK_ID_NS);
+  $object->add_relationship(MODS_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
@@ -470,10 +471,15 @@ function si_mods_get_info(string $record) {
   $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
   $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
   $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
+  $to_string = function($o) { return (string) $o; }
+  $related_names = array_map($to_string, $xml->xpath('//ns:name/@ID'));
+  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/@ID'));
   return array(
     'id' => $id,
     'label' => si_normalize_object_label($label),
     'description' => $description
+    'related_names' => $related_names,
+    'releated_items' => $related_items,
   );
 }
 
@@ -529,6 +535,7 @@ function si_update_person(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_organization(array $object, array $objects) {
+
 }
 
 /**
@@ -540,6 +547,7 @@ function si_update_organization(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_expedition(array $object, array $objects) {
+
 }
 
 /**
@@ -585,58 +593,6 @@ function si_find_object(string $id, string $type, array $objects) {
               return $object['id'] == $id;
             });
   return empty($result) ? FALSE : array_shift($result);
-}
-
-/**
- * Callback for the batch ingest command.
- *
- * @param string $collection_pid
- *   The collection to ingest into.
- * @param string $relationship
- *   The relationship between the Object being ingested and the given collection.
- * @param string $input_file
- *   The Filemaker Pro XML Dump file. The path must be absolute.
- * @param string $input_xsl
- *   The XSL that will be used to generated metadata for each Object. The path must be absolute.
- * @param string $url_to_tn
- *   The URL to the default thumbnail to use with the ingested Objects
- * @param string $type
- *   The type of Object
- *
-function drush_si_batch_ingest($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
-  module_load_include('inc', 'fedora_repository', 'CollectionClass');
-  drush_print('Current working directory ' . getcwd());
-  if (isset($collection_pid)) {
-    drush_print("\n Used collection pid of" . $collection_pid . "\n");
-  }
-  else {
-    drush_print("no collection pid specified");
-    return;
-  }
-  if (isset($relationship)) {
-    drush_print("\n and relationship of" . $relationship);
-  }
-  else {
-    drush_print("\n no relationship specified");
-    return;
-  }
-  if (!isset($input_file)) {
-    drush_print("\n no input xml file specified");
-    return;
-  }
-  if (!isset($input_xsl)) {
-    drush_print("\n no input xsl file specified");
-    return;
-  }
-  if (!isset($url_to_tn)) {
-    drush_print("\n no thumbnail url specified");
-    return;
-  }
-  if (!isset($type)) {
-    drush_print("\n no object type specified");
-    return;
-  }
-  si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type);
 }
 
 /**
