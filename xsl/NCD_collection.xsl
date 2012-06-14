@@ -9,9 +9,8 @@
     <xsl:template match="/">
         <xsl:for-each select="//fmp:ROW">
             <RecordSet xmlns="http://rs.tdwg.org/ncd/0.70"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                xsi:schemaLocation="http://rs.tdwg.org/ncd/0.70 file:///Users/nigelbanks/Downloads/ncdLite_v1_2-1.xsd">
+                xmlns:xsi="http://www.w3.org/2001   /XMLSchema-instance"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
                 <Collections>
                     <Collection id="{fmp:collectionID}">
                         <CollectionId>

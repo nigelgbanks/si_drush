@@ -4,6 +4,7 @@
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:eac="http://www.filemaker.com/fmpdsoresult" 
     xmlns:date="http://exslt.org/dates-and-times"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
     exclude-result-prefixes="eac"
     extension-element-prefixes="date">
     <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="UTF-8"/>
@@ -658,7 +659,22 @@
         <xsl:param name="localType"/>
         <xsl:param name="value"/>
         <xsl:param name="description"/>
+        <xsl:variable name="isID">
+            <xsl:call-template name="isID">
+                <xsl:with-param name="value" select="$value"/>
+            </xsl:call-template>
+        </xsl:variable>
         <cpfRelation cpfRelationType="{$type}">
+            <xsl:if test="$isID = 'true'">
+                <xsl:attribute name="xlink:href">
+                    <xsl:value-of select="$value"/>
+                </xsl:attribute>
+                <xsl:attribute name="xlink:role">
+                    <xsl:call-template name="getfedoraAuthorityURI">
+                        <xsl:with-param name="value" select="$value"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+            </xsl:if>
             <relationEntry localType="{$localType}">
                 <xsl:value-of select="normalize-space($value)"/>
             </relationEntry>
@@ -674,7 +690,22 @@
         <xsl:param name="type"/>
         <xsl:param name="localType"/>
         <xsl:param name="value"/>
+        <xsl:variable name="isID">
+            <xsl:call-template name="isID">
+                <xsl:with-param name="value" select="$value"/>
+            </xsl:call-template>
+        </xsl:variable>
         <resourceRelation resourceRelationType="{$type}">
+            <xsl:if test="$isID = 'true'">
+                <xsl:attribute name="xlink:href">
+                    <xsl:value-of select="$value"/>
+                </xsl:attribute>
+                <xsl:attribute name="xlink:role">
+                    <xsl:call-template name="getfedoraAuthorityURI">
+                        <xsl:with-param name="value" select="$value"/>
+                    </xsl:call-template>
+                </xsl:attribute>
+            </xsl:if>
             <relationEntry localType="{$localType}">
                 <xsl:value-of select="normalize-space($value)"/>
             </relationEntry>

@@ -103,7 +103,6 @@
             <xsl:call-template name="subjects">
                 <xsl:with-param name="subjects" select="fmp:i_expedition_name/fmp:DATA[normalize-space(text())]"/>
                 <xsl:with-param name="type">conference</xsl:with-param>
-                <xsl:with-param name="value" select="text()"/>
                 <xsl:with-param name="displayLabel">Expedition</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
@@ -114,12 +113,14 @@
             <xsl:call-template name="subjects">
                 <xsl:with-param name="subjects"
                     select="fmp:i_subject_person/fmp:DATA[normalize-space(text())]"/>
-                <xsl:with-param name="type">person</xsl:with-param>
+                <xsl:with-param name="type">personal</xsl:with-param>
+                <xsl:with-param name="displayLabel">Person</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="subjects">
                 <xsl:with-param name="subjects"
                     select="fmp:i_subject_organization/fmp:DATA[normalize-space(text())]"/>
-                <xsl:with-param name="type">organization</xsl:with-param>
+                <xsl:with-param name="type">corporate</xsl:with-param>
+                <xsl:with-param name="displayLabel">Organization</xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="langauges">
                 <xsl:with-param name="languages" select="fmp:i_language1 | fmp:i_language2"/>
@@ -522,7 +523,7 @@
                         <xsl:value-of select="$value"/>
                     </geographic>
                 </xsl:when>
-                <xsl:when test="$type = 'person'">
+                <xsl:when test="$type = 'personal'">
                     <xsl:call-template name="name">
                         <xsl:with-param name="type">personal</xsl:with-param>
                         <xsl:with-param name="name" select="$value"/>
@@ -538,7 +539,7 @@
                         </xsl:with-param>
                     </xsl:call-template>
                 </xsl:when>
-                <xsl:when test="$type = 'organization'">
+                <xsl:when test="$type = 'corporate'">
                     <xsl:call-template name="name">
                         <xsl:with-param name="type">corporate</xsl:with-param>
                         <xsl:with-param name="name" select="$value"/>

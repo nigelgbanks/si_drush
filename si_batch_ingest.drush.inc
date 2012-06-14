@@ -450,17 +450,49 @@ function si_add_relation_literal(FedoraItem $object, string $predicate, string $
  *   An array of info.
  */
 function si_eaccpf_get_info(string $record) {
-  $xml = simplexml_load_string($record);
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('ns', $namespaces['']);
-  $id = (string) array_shift($xml->xpath('//ns:recordId'));
-  $label = (string) array_shift($xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part'));
-  $description = (string) array_shift($xml->xpath('//ns:biogHist/ns:p'));
-  $label = si_normalize_object_label($label);
+  $xml = si_get_simple_xml($record);
+  $functions = array(
+    TYPE_PERSON => 'si_eaccpf_person_get_info',
+    TYPE_ORGANIZATION => 'si_eaccpf_organization_get_info',
+    TYPE_EXPEDITION => 'si_eaccpf_expedition_get_info',
+  );
+  $function = $functions[si_get_type_from_object_id($id)]; // Specialization of EAC-CPF type.
+  return array_merge(array(
+    'id' => si_get_value_from_xml($xml, '//ns:recordId'),
+    'label' => si_normalize_object_label(si_get_values_from_xml($xml, '//ns:identity/ns:nameEntry[@localType="primary"]/ns:part')),
+    'description' => si_get_values_from_xml($xml, '//ns:biogHist/ns:p'),
+    'cpf_relations' => si_get_values_from_xml($xml, '//ns:cpfRelation/@xlink:href'),
+    'resource_relations' => si_get_values_from_xml($xml, '//ns:resourceRelation/@xlink:href'),
+    ), $function($xml));
+}
+
+/**
+ * Gets the info that is unique to this kind of EAC-CPF record
+ */
+function si_eaccpf_person_get_info(SimpleXMLElement $xml) {
   return array(
-    'id' => $id,
-    'label' => si_normalize_object_label($label),
-    'description' => $description
+    'related_material' => si_get_values_from_xml($xml, '//ns:resourceRelation[ns:relationEntry/@localType="material"]/@xlink:href'),
+    'related_entities' => si_get_values_from_xml($xml, '//ns:cpfRelation[ns:relationEntry/@localType="entity"]/@xlink:href'),
+  );
+}
+
+/**
+ * Gets the info that is unique to this kind of EAC-CPF record
+ */
+function si_eaccpf_organization_get_info(SimpleXMLElement $xml) {
+  return array(
+    'parent' => si_get_value_from_xml($xml, '//ns:cpfRelation[cpfRelationType="hierarchical-parent"]/@xlink:href'),
+  );
+}
+
+/**
+ * Gets the info that is unique to this kind of EAC-CPF record
+ */
+function si_eaccpf_expedition_get_info(SimpleXMLElement $xml) {
+  return array(
+    'participant_organizations' => si_get_values_from_xml($xml, '//ns:cpfRelation[ns:relationEntry/@localType="organization"]/@xlink:href'),
+    'participant_persons' => si_get_values_from_xml($xml, '//ns:cpfRelation[ns:relationEntry/@localType="person"]/@xlink:href'),
+    'related_material' => si_get_values_from_xml($xml, '//ns:resourceRelation[ns:relationEntry/@localType="material"]/@xlink:href'),
   );
 }
 
@@ -474,19 +506,24 @@ function si_eaccpf_get_info(string $record) {
  *   An array of info.
  */
 function si_ncd_get_info(string $record) {
-  $xml = simplexml_load_string($record);
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('ns', $namespaces['']);
-  $id = (string) array_shift($xml->xpath('//ns:CollectionId'));
-  $alt_id = (string) array_shift($xml->xpath('//ns:AlternativeIds/ns:Identifier[1]'));
-  $label = (string) array_shift($xml->xpath('//ns:dc_title'));
-  $description = (string) array_shift($xml->xpath('//ns:dc_description'));
-  $label = si_normalize_object_label($label);
+  $xml = si_get_simple_xml($record);
+  $expeditions = si_get_values_from_xml($xml, '//ns:ExpeditionName');
+  $expeditions = array_filter($expeditions, 'si_is_id');
+  $collectors = si_get_values_from_xml($xml, '//ns:Collector');
+  $collectors = array_filter($collectors, 'si_is_id');
+  $associated_persons = si_get_values_from_xml($xml, '//ns:AssociatedAgent');;
+  $associated_persons = array_filter($associated_persons, 'si_is_id');
+  $related_collections = si_get_values_from_xml($xml, '//ns:RelatedMaterialsGroup/ns:dc_relation');;
+  $related_collections = array_filter($related_collections, 'si_is_id');
   return array(
-    'id' => $id,
-    'alt_id' => $alt_id,
-    'label' => si_normalize_object_label($label),
-    'description' => $description
+    'id' => si_get_value_from_xml($xml, '//ns:CollectionId'),
+    'alt_id' => si_get_value_from_xml($xml, '//ns:AlternativeIds/ns:Identifier[1]'),
+    'label' => si_normalize_object_label(si_get_value_from_xml($xml, '//ns:dc_title')),
+    'description' => si_get_value_from_xml($xml, '//ns:dc_description'),
+    'expeditions' => $expeditions,
+    'collectors' => $collectors,
+    'associated_persons' => $associated_persons,
+    'related_collections' => $related_collections,
   );
 }
 
@@ -500,24 +537,50 @@ function si_ncd_get_info(string $record) {
  *   An array of info.
  */
 function si_mods_get_info(string $record) {
+  $xml = si_get_simple_xml($record);
+  return array(
+    'id' => si_get_value_from_xml($xml, '/ns:mods/@ID'),
+    'alt_id' => si_get_value_from_xml($xml, '/ns:mods/ns:identifier[@type="accessionNumber"]'),
+    'label' => si_normalize_object_label(si_get_value_from_xml($xml, '//ns:titleInfo/ns:title')),
+    'description' => si_get_value_from_xml($xml, '//ns:titleInfo/ns:abstract'),
+    'related_names' => si_get_values_from_xml($xml, '//ns:name/@valueURI'),
+    'related_items' => si_get_values_from_xml($xml, '//ns:relatedItem/ns:titleInfo/@valueURI'),
+    'creators' => si_get_values_from_xml($xml, '//ns:name[ns:role/ns:roleTerm="creator"]/@valueURI'),
+    'contributors' => si_get_values_from_xml($xml, '//ns:name[ns:role/ns:roleTerm="contributor"]/@valueURI'),
+    'expeditions' => si_get_values_from_xml($xml, '//ns:subject/ns:name[@displayLabel="Expedition"]/@valueURI'),
+    'organizations' => si_get_values_from_xml($xml, '//ns:subject/ns:name[@displayLabel="Organization"]/@valueURI'),
+    'persons' => si_get_values_from_xml($xml, '//ns:subject/ns:name[@displayLabel="Person"]/@valueURI'),
+  );
+}
+
+/**
+ * Gets the string as a simple xml object, with 'ns' as the default namespace.
+ */
+function si_get_simple_xml(string $record) {
   $xml = simplexml_load_string($record);
   $namespaces = $xml->getDocNamespaces();
   $xml->registerXPathNamespace('ns', $namespaces['']);
-  $id = (string) array_shift($xml->xpath('/ns:mods/@ID'));
-  $alt_id = (string) array_shift($xml->xpath('/ns:mods/ns:identifier[@type="accessionNumber"]'));
-  $label = (string) array_shift($xml->xpath('//ns:titleInfo/ns:title'));
-  $description = (string) array_shift($xml->xpath('//ns:titleInfo/ns:abstract'));
-  $to_string = function($o) { return (string) $o; };
-  $related_names = array_map($to_string, $xml->xpath('//ns:name/@valueURI'));
-  $related_items = array_map($to_string, $xml->xpath('//ns:relatedItem/ns:titleInfo/@valueURI'));
-  return array(
-    'id' => $id,
-    'alt_id' => $alt_id,
-    'label' => si_normalize_object_label($label),
-    'description' => $description,
-    'related_names' => $related_names,
-    'related_items' => $related_items,
-  );
+  return $xml;
+}
+
+/**
+ * Gets a single value from the node specified by the given $xpath
+ *
+ * @return string
+ *   The requested value if found, otherwise an empty string.
+ */
+function si_get_value_from_xml(SimpleXMLElement $xml, string $xpath) {
+  return (string) array_shift($xml->xpath($xpath));
+}
+
+/**
+ * Gets a values from the nodes specified by the given $xpath
+ *
+ * @return array
+ *   The requested values if found, otherwise an empty array.
+ */
+function si_get_values_from_xml(SimpleXMLElement $xml, string $xpath) {
+  return array_map(function($o) { return (string) $o; }, $xml->xpath($xpath));
 }
 
 /**
@@ -560,10 +623,7 @@ function si_update_object(array $object, string $type, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_person(array $object, array $objects) {
-  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
-  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
-  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
-  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+  si_update_eaccpf($object, $objects);
 }
 
 /**
@@ -575,10 +635,7 @@ function si_update_person(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_organization(array $object, array $objects) {
-  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
-  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
-  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
-  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+  si_update_eaccpf($object, $objects);
 }
 
 /**
@@ -590,10 +647,20 @@ function si_update_organization(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_expedition(array $object, array $objects) {
+  si_update_eaccpf($object, $objects);
+}
+
+/**
+ * Updates and EAC-CPF record.
+ */
+function si_update_eaccpf(array $object, array $objects) {
   list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
-  //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
-  //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
+  si_update_references_with_label($xml, $object['cpf_relations'], '//ns:cpfRelation[@xlink:href="%id"]/ns:relationEntry', $objects);
+  si_update_references_with_label($xml, $object['resource_relations'], '//ns:resourceRelation[@xlink:href="%id"]/ns:relationEntry', $objects);
   $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+  if(!empty($data['parent']) && $parent = si_find_object($data['parent'], $objects)) {
+    $object->add_relationship('isMemberOfCollection', $parent['pid']);
+  }
 }
 
 /**
@@ -605,10 +672,11 @@ function si_update_expedition(array $object, array $objects) {
  *   Properties that define all the objects.
  */
 function si_update_collection(array $object, array $objects) {
-  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  // Collections have no place to store the ID's
+  //list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
   //si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
   //si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
-  $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+  //$item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
 }
 
 /**
@@ -624,6 +692,8 @@ function si_update_fieldbook(array $object, array $objects) {
   si_update_references_with_label($xml, $object['related_names'], '//ns:name[@valueURI="%id"]/ns:namePart', $objects);
   si_update_references_with_label($xml, $object['related_items'], '//ns:relatedItem/ns:titleInfo[@valueURI="%id"]/ns:title', $objects);
   $item->modify_datastream_by_value($xml->asXML(), $dsid, $dsid, 'text/xml');
+  si_update_relationships($object, $object['creators'], 'hasCreator', SMITHSONIAN_ONTOLOGY_URI, $objects);
+  si_update_relationships($object, $object['creators'], 'isMemberOfCollection', RELS_EXT_URI, $objects)
 }
 
 /**
@@ -644,17 +714,43 @@ function si_get_objects_item_and_metadata(array $object) {
  * Updates the references found at $xpath.
  */
 function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, string $xpath, array $objects) {
-  foreach($ids as $id) {
-    if($object = si_find_object($id, $objects)) {
+  array_walk(si_find_objects($ids, $objects), function($object) use(&$xml, $xpath) {
       $label = $object['label'];
-      $query = str_replace('%id', $id, $xpath);
-      drush_print($query);
+      $query = str_replace('%id', $object['id'], $xpath);
       $elements = $xml->xpath($query);
       foreach($elements as $element) {
         $element->{0} = $label;
       }
+  });
+}
+
+/**
+ * Creates relationships between all $ids.
+ */
+function si_update_relationships(array $object, array $ids, string $predicate, string $uri, array $objects) {
+  array_walk(si_find_objects($ids, $objects), function($related_object) use($object, $predicate, $uri) {
+      $object->add_relationship($predicate, $related_object['pid'], $uri);
+  });
+}
+
+/**
+ * Updates a single relationship
+ */
+function si_update_relationship(array $object, string $id, string $predicate, string $uri, array $objects) {
+  si_update_relationships($object, array($id), $predicate, $uri, $objects);
+}
+
+/**
+ * Finds all the objects identified by $ids
+ */
+function si_find_objects(array $ids, array $objects) {
+  $ret = array();
+  foreach($ids as $id) {
+    if($object = si_find_object($id, $objects)) {
+      $ret[] = $object;
     }
   }
+  return $ret;
 }
 
 /**
@@ -692,127 +788,25 @@ function si_get_type_from_object_id(string $id) {
 }
 
 /**
+ * Checks if the given string is an ID.
+ */
+function si_is_id(string $id) {
+  $types = array(TYPE_PERSON, TYPE_ORGANIZATION, TYPE_EXPEDITION, TYPE_COLLECTION, TYPE_FIELDBOOK);
+  foreach($types as $type) {
+    if(strpos($id, $type) !== FALSE) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
  *
  */
 function si_get_dsid_from_object_id(string $id) {
   $dsid = array(TYPE_PERSON => 'EAC-CPF', TYPE_ORGANIZATION => 'EAC-CPF', TYPE_EXPEDITION =>'EAC-CPF', TYPE_COLLECTION => 'NCD', TYPE_FIELDBOOK => 'MODS');
   $type = si_get_type_from_object_id($id);
   return $dsid[$type];
-}
-
-/**
- *
- *
- * @param string $collection_pid
- * @param string $relationship
- * @param string $input_file
- * @param string $input_xsl
- * @param string $url_to_tn
- *
-function si_doAction($collection_pid, $relationship, $input_file, $input_xsl, $url_to_tn, $type) {
-  $xml_record = si_transform($input_file, $input_xsl);
-  $type = (string) trim($type);
-  $object = null;
-  switch($type) {
-    case 'collection': // NCD
-      $xml_records = explode("</RecordSet>", $xml_record); // Split into seperate XML Documents
-      foreach ($xml_records as $record) {
-        $record = $record . '</RecordSet>';
-        si_collection_create_object($collection_pid, $relationship, $record, $url_to_tn);
-      }
-      break;
-    case 'item': // MODS
-      $xml_records = explode("</mods>", $xml_record); // Split into XML documents
-      $original_records = simplexml_load_file($input_file); // There is content in the original that does not map to mods but we need to manage relationships
-      $i = 0;
-      foreach ($xml_records as $record) {
-        $record = $record . '</mods>';
-        $xml = simplexml_load_string($record);
-        $namespaces = $xml->getDocNamespaces();
-        $xml->registerXPathNamespace('mods', $namespaces['']);
-        $or = $original_records->ROW[$i++]; // This should give us the corresponding original record
-        $or = $or->asXML();
-        $or_xml = simplexml_load_string($or);
-        $relationship_data = si_get_fmp_relationship_data($or_xml);
-        $object = si_item_create_object($collection_pid, $relationship, $xml, $url_to_tn); // Create the Fedora object with MODS data.
-        $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
-        $description = $xml->xpath('//mods:abstract');
-        si_update_dc($object, $description[0]);
-        si_updateAllRelationships($object, $relationship_data);
-      }
-      break;
-    case 'person':
-    case 'organization':
-    case 'expedition': // EAC-CPF
-      $xml_records = explode("</eac-cpf>", $xml_record);
-      foreach ($xml_records as $record) {
-        $record = $record . '</eac-cpf>';
-        $xml = simplexml_load_string($record);
-        $namespaces = $xml->getDocNamespaces();
-        $xml->registerXPathNamespace('ns', $namespaces['']);
-        ///default:eac-cpf/default:cpfDescription[1]/default:identity[1]/default:nameEntry[1]/default:part[1]
-        $result = $xml->xpath('//ns:identity/ns:nameEntry[@localType="primary"]/ns:part');
-        $label = (string) $result[0];
-        $result = $xml->xpath('//ns:recordId');
-        $eac_id = (string) $result[0]; //we want to add this to the triple store so we can query when ingesting other objects
-        $object = si_create_object($collection_pid, $relationship, $xml, $url_to_tn);
-        //default:eac-cpf/default:cpfDescription[1]/default:description[1]/default:biogHist[1]/default:p[1]
-        $result = $xml->xpath('//ns:biogHist/ns:p');
-        si_update_dc($object, (string) $result[0]);
-        switch ($type) {
-          case 'person':
-            $object->add_relationship('hasEacCpfPerson', $eac_id, EAC_PERSON_ID_NS);
-            $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
-            break;
-          case 'organization':
-            $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
-            $object->add_relationship('hasEacCpfOrganization', $eac_id, EAC_ORGANIZATION_ID_NS);
-            break;
-          case 'expedition':
-            drush_print('adding relationship for expedition');
-            $object->add_relationship('hasEacCpfExpedition', $eac_id, EAC_EXPEDITION_ID_NS);
-            $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
-            break;
-        }
-      }
-      break;
-  }
-}*/
-
-
-
-/**
- * reads the orginal xml before we tranform to mods
- * gets the fields that hold relationhsip info and returns
- * an array contain this information
- * @param string $xml
- * @return array
- */
-function si_get_fmp_relationship_data($xml) {
-  //$namespaces = $xml->getDocNamespaces();
-  //$xml->registerXPathNamespace('ns', $namespaces['']);
-  $data = array();
-  ///default:FMPDSORESULT/default:ROW[1]/default:i_creator[1]/default:DATA[1]
-  $creators = $xml->xpath('//i_creator/DATA');
-  foreach ($creators as $creator) {
-    if (!empty($creator)) {//there are some fields without data
-      $data['creators'][] = (string) $creator;
-      print('added Creator ' . (string) $creator);
-    }
-  }
-  $expeditions = $xml->xpath('//i_expedition_name/DATA');
-  foreach ($expeditions as $exp) {
-    if (!empty($exp)) {//there are some fields without data
-      $data['expedition'][] = (string) $exp;
-    }
-  }
-  $collections = $xml->xpath('//i_collection');
-  foreach ($collections as $collection) {
-    if (!empty($collection)) {//there are some fields without data
-      $data['collections'][] = (string) $collection;
-    }
-  }
-  return $data;
 }
 
 /**
@@ -875,36 +869,6 @@ function si_relate_collection_to_expeditions($collection_pid, $expeditions) {
     foreach ($objects as $exp)
       $collection_object->add_relationship('isMemberOfCollection', (string) $exp);
     drush_print('added expedition ' . (string) $exp . ' to ' . $collection_pid);
-  }
-}
-
-/**
- *
- * @param SimpleXMLElement $content
- * @return array
- */
-function si_sparql_results_as_array($content) {
-  $content = new SimpleXMLElement($content);
-  $resultsarray = array();
-  foreach ($content->results->result as $result) {
-    $resultsarray[] = substr($result->object->attributes()->uri, 12); // Remove 'info:fedora/'.
-  }
-  return $resultsarray;
-}
-
-/**
- *
- * @param strings $query
- */
-function si_run_query($query) {
-  module_load_include('inc', 'fedora_repository', 'CollectionClass');
-  $cc = new CollectionClass();
-  $results = $cc->getRelatedItems(NULL, $query,1000000);
-  if (isset($results)) {//still doesn't tell us if these are valid results
-    return $results;
-  }
-  else {
-    drush_print('Error get related items, relationships cannot be updated');
   }
 }
 

@@ -92,7 +92,7 @@
             <xsl:if test="$entity1">
                 <xsl:call-template name="cpfRelation">
                     <xsl:with-param name="type">associative</xsl:with-param>
-                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="localType">entity</xsl:with-param>
                     <xsl:with-param name="value" select="$entity1"/>
                     <xsl:with-param name="description" select="eac:p_related_entity1_description"/>
                 </xsl:call-template>
@@ -100,7 +100,7 @@
             <xsl:if test="$entity2">
                 <xsl:call-template name="cpfRelation">
                     <xsl:with-param name="type">associative</xsl:with-param>
-                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="localType">entity</xsl:with-param>
                     <xsl:with-param name="value" select="$entity2"/>
                     <xsl:with-param name="description" select="eac:p_related_entity2_description"/>
                 </xsl:call-template>
@@ -108,7 +108,7 @@
             <xsl:if test="$entity3">
                 <xsl:call-template name="cpfRelation">
                     <xsl:with-param name="type">associative</xsl:with-param>
-                    <xsl:with-param name="localType">undefined</xsl:with-param>
+                    <xsl:with-param name="localType">entity</xsl:with-param>
                     <xsl:with-param name="value" select="$entity3"/>
                     <xsl:with-param name="description" select="eac:p_related_entity3_description"/>
                 </xsl:call-template>
