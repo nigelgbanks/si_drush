@@ -114,7 +114,7 @@ function si_ingest_records(array $records, string $function) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_persons() {
-  $records = si_transform('person.xml', 'EAC_person.xsl', 'eac-cpf');
+  $records = si_transform('persons.xml', 'EAC_person.xsl', 'eac-cpf');
   return si_ingest_records($records, 'si_ingest_person');
 }
 
@@ -145,7 +145,7 @@ function si_ingest_person(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_organizations() {
-  $records = si_transform('organization.xml', 'EAC_organization.xsl', 'eac-cpf');
+  $records = si_transform('organizations.xml', 'EAC_organization.xsl', 'eac-cpf');
   return si_ingest_records($records, 'si_ingest_organization');
 }
 
@@ -176,7 +176,7 @@ function si_ingest_organization(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_expeditions() {
-  $records = si_transform('expedition.xml', 'EAC_expedition.xsl', 'eac-cpf');
+  $records = si_transform('expeditions.xml', 'EAC_expedition.xsl', 'eac-cpf');
   return si_ingest_records($records, 'si_ingest_organization');
 }
 
@@ -207,7 +207,7 @@ function si_ingest_expedition(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_collections() {
-  $records = si_transform('collection.xml', 'NCD_collection.xsl', 'RecordSet');
+  $records = si_transform('collections.xml', 'NCD_collection.xsl', 'RecordSet');
   return si_ingest_records($records, 'si_ingest_collection');
 }
 
@@ -238,7 +238,7 @@ function si_ingest_collection(string $record) {
  *   A description of the ingested object, including any relevent information for updating its relations.
  */
 function si_ingest_fieldbooks() {
-  $records = si_transform('fieldbook.xml', 'MODS_fieldbook.xsl', 'mods');
+  $records = si_transform('fieldbooks.xml', 'MODS_fieldbook.xsl', 'mods');
   return si_ingest_records($records, 'si_ingest_fieldbook');
 }
 
