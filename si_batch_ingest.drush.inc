@@ -99,7 +99,7 @@ function si_batch_update_all(array $objects) {
 /**
  * Ingest the given records using the given function.
  */
-function si_ingest_records(array $records, string $function) {
+function si_ingest_records(array $records, $function) {
   $objects = array();
   foreach($records as $record) {
     $objects[] = $function($record);
@@ -127,7 +127,7 @@ function si_ingest_persons() {
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_person(string $record) {
+function si_ingest_person($record) {
   $data = si_eaccpf_get_info($record);
   $object = si_create_object($data, 'person.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
@@ -158,7 +158,7 @@ function si_ingest_organizations() {
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_organization(string $record) {
+function si_ingest_organization($record) {
   $data = si_eaccpf_get_info($record);
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
@@ -189,7 +189,7 @@ function si_ingest_expeditions() {
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_expedition(string $record) {
+function si_ingest_expedition($record) {
   $data = si_eaccpf_get_info($record);
   $object = si_create_object($data, 'organization.png');
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
@@ -220,7 +220,7 @@ function si_ingest_collections() {
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_collection(string $record) {
+function si_ingest_collection($record) {
   $data = si_ncd_get_info($record);
   $object = si_create_object($data, 'collection.png');
   si_add_datastream_from_string($object, 'NCD', $record);
@@ -251,7 +251,7 @@ function si_ingest_fieldbooks() {
  * @return array
  *   A description of the ingested object.
  */
-function si_ingest_fieldbook(string $record) {
+function si_ingest_fieldbook($record) {
   $data = si_mods_get_info($record);
   $object = si_create_object($data, 'fieldbook.png');
   si_add_datastream_from_string($object, 'MODS', $record);
@@ -301,7 +301,7 @@ function si_transform($input, $transform, $root_element) {
 /**
  * Creates a object with the given attributes.
  */
-function si_create_object(array &$properties, string $thumbnail) {
+function si_create_object(array &$properties, $thumbnail) {
   $object = si_create_empty_object($properties['label'], $properties['id']);
   $properties['pid'] = $object->pid;
   si_update_dc_description($object, $properties['description']);
@@ -314,10 +314,10 @@ function si_create_object(array &$properties, string $thumbnail) {
  *
  * @param string $label
  *   The label for the object.
- * @return FedoraItem
- *   The newly created FedoraItem.
+ * @return Fedora_Item
+ *   The newly created Fedora_Item.
  */
-function si_create_empty_object(string $label, string $id) {
+function si_create_empty_object($label, $id) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $pid = Fedora_Item::get_next_PID_in_namespace('si');
   drush_print("Creating object: {$label} ($pid/$id)");
@@ -328,12 +328,12 @@ function si_create_empty_object(string $label, string $id) {
 /**
  * Updates and objects DC datastreams dc:description element with the given description.
  *
- * @param FedoraItem $object
+ * @param Fedora_Item $object
  *   The object to modify.
  * @param string $description
  *   The description to add to the DC.
  */
-function si_update_dc_description(FedoraItem $object, string $description) {
+function si_update_dc_description(Fedora_Item $object, $description) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   module_load_include('inc', 'fedora_repository', 'api/dublin_core');
   $dc = new Dublin_Core($object);
@@ -349,12 +349,12 @@ function si_update_dc_description(FedoraItem $object, string $description) {
 /**
  * Adds a thumbnail datastream to the object.
  *
- * @param FedoraItem $object
+ * @param Fedora_Item $object
  *   The fedora object to add the thumbnail to.
  * @param string $thumbnail
  *   The name of the thumbnail in the images directory.
  */
-function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
+function si_add_thumbnail(Fedora_Item $object, $thumbnail) {
   $directory = dirname(__FILE__);
   si_add_datastream_from_file($object, 'TN', "$directory/images/$thumbnail", 'image/png');
 }
@@ -362,7 +362,7 @@ function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
 /**
  * Adds a datastream based on the given attributes, where URL points to a file to be added.
  *
- * @param FedoraItem $object
+ * @param Fedora_Item $object
  *  The object to add the datastream to.
  * @param string $dsid
  *  The datastream id
@@ -375,7 +375,7 @@ function si_add_thumbnail(FedoraItem $object, string $thumbnail) {
  * @param string $control_group
  *  The control group for the datastream
  */
-function si_add_datastream_from_file(FedoraItem $object, string $dsid, string $file, string $mimetype, string $label = NULL, $control_group = 'M') {
+function si_add_datastream_from_file(Fedora_Item $object, $dsid, $file, $mimetype, $label = NULL, $control_group = 'M') {
   $label = isset($label) ? $label : $dsid;
   if ($object->add_datastream_from_file($file, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
     drush_print("Added datastream $dsid to {$object->pid}");
@@ -388,7 +388,7 @@ function si_add_datastream_from_file(FedoraItem $object, string $dsid, string $f
 /**
  * Adds a datastream based on the given attributes, where the content of the datastream is given in $string.
  *
- * @param FedoraItem $object
+ * @param Fedora_Item $object
  *  The object to add the datastream to.
  * @param string $dsid
  *  The datastream id
@@ -401,7 +401,7 @@ function si_add_datastream_from_file(FedoraItem $object, string $dsid, string $f
  * @param string $control_group
  *  The control group for the datastream
  */
-function si_add_datastream_from_string(FedoraItem $object, string $dsid, string $string, $mimetype = 'text/xml', $label = '', $control_group = 'M') {
+function si_add_datastream_from_string(Fedora_Item $object, $dsid, $string, $mimetype = 'text/xml', $label = '', $control_group = 'M') {
   $label = isset($label) ? $label : $dsid;
   if ($object->add_datastream_from_string($string, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
     drush_print("Added datastream $dsid to {$object->pid}");
@@ -423,7 +423,7 @@ function si_add_datastream_from_string(FedoraItem $object, string $dsid, string 
  * @param string $uri
  *   The namespace in which to add the relationship.
  */
-function si_add_relation_literal(FedoraItem $object, string $predicate, string $literal, string $uri) {
+function si_add_relation_literal(Fedora_Item $object, $predicate, $literal, $uri) {
   $ds_list = $object->get_datastreams_list_as_array();
   if (empty($ds_list['RELS-EXT'])) {
     $empty_rels_ext =
@@ -449,7 +449,7 @@ function si_add_relation_literal(FedoraItem $object, string $predicate, string $
  * @return array
  *   An array of info.
  */
-function si_eaccpf_get_info(string $record) {
+function si_eaccpf_get_info($record) {
   $xml = si_get_simple_xml($record);
   $functions = array(
     TYPE_PERSON => 'si_eaccpf_person_get_info',
@@ -506,7 +506,7 @@ function si_eaccpf_expedition_get_info(SimpleXMLElement $xml) {
  * @return array
  *   An array of info.
  */
-function si_ncd_get_info(string $record) {
+function si_ncd_get_info($record) {
   $xml = si_get_simple_xml($record);
   $expeditions = si_get_values_from_xml($xml, '//ns:ExpeditionName');
   $expeditions = array_filter($expeditions, 'si_is_id');
@@ -537,7 +537,7 @@ function si_ncd_get_info(string $record) {
  * @return array
  *   An array of info.
  */
-function si_mods_get_info(string $record) {
+function si_mods_get_info($record) {
   $xml = si_get_simple_xml($record);
   return array(
     'id' => si_get_value_from_xml($xml, '/ns:mods/@ID'),
@@ -557,7 +557,7 @@ function si_mods_get_info(string $record) {
 /**
  * Gets the string as a simple xml object, with 'ns' as the default namespace.
  */
-function si_get_simple_xml(string $record) {
+function si_get_simple_xml($record) {
   $xml = simplexml_load_string($record);
   $namespaces = $xml->getDocNamespaces();
   $xml->registerXPathNamespace('ns', $namespaces['']);
@@ -571,7 +571,7 @@ function si_get_simple_xml(string $record) {
  * @return string
  *   The requested value if found, otherwise an empty string.
  */
-function si_get_value_from_xml(SimpleXMLElement &$xml, string $xpath) {
+function si_get_value_from_xml(SimpleXMLElement &$xml, $xpath) {
   $results = $xml->xpath($xpath);
   return is_array($results) ? htmlspecialchars((string) array_shift($xml->xpath($xpath)), ENT_NOQUOTES, 'UTF-8') : '';
 }
@@ -582,7 +582,7 @@ function si_get_value_from_xml(SimpleXMLElement &$xml, string $xpath) {
  * @return array
  *   The requested values if found, otherwise an empty array.
  */
-function si_get_values_from_xml(SimpleXMLElement &$xml, string $xpath) {
+function si_get_values_from_xml(SimpleXMLElement &$xml, $xpath) {
   $results = $xml->xpath($xpath);
   return is_array($results) ? array_map(function($o) { return htmlspecialchars((string) $o, ENT_NOQUOTES, 'UTF-8'); }, $results) : array();
 }
@@ -590,7 +590,7 @@ function si_get_values_from_xml(SimpleXMLElement &$xml, string $xpath) {
 /**
  * Normalizes the label for the fedora object.
  */
-function si_normalize_object_label(string $label) {
+function si_normalize_object_label($label) {
   // @TODO do the full regex check
   return (strlen($label) > 255) ? substr($label, 0, 254) : $label;
 }
@@ -605,7 +605,7 @@ function si_normalize_object_label(string $label) {
  * @param array $objects
  *   Properties that define all the objects.
  */
-function si_update_object(array $object, string $type, array $objects) {
+function si_update_object(array $object, $type, array $objects) {
   static $update_functions = array(
     TYPE_PERSON => 'si_update_person',
     TYPE_ORGANIZATION => 'si_update_organization',
@@ -712,7 +712,7 @@ function si_get_objects_item_and_metadata(array $object) {
 /**
  * Updates the references found at $xpath.
  */
-function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, string $xpath, array $objects) {
+function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, $xpath, array $objects) {
   array_walk(si_find_objects($ids, $objects), function($object) use(&$xml, $xpath) {
       $label = $object['label'];
       $query = str_replace('%id', $object['id'], $xpath);
@@ -726,7 +726,7 @@ function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, str
 /**
  * Creates relationships between all $ids.
  */
-function si_update_relationships(array $object, array $ids, string $predicate, string $uri, array $objects) {
+function si_update_relationships(array $object, array $ids, $predicate, $uri, array $objects) {
   array_walk(si_find_objects($ids, $objects), function($related_object) use($object, $predicate, $uri) {
       $object->add_relationship($predicate, $related_object['pid'], $uri);
   });
@@ -735,7 +735,7 @@ function si_update_relationships(array $object, array $ids, string $predicate, s
 /**
  * Updates a single relationship
  */
-function si_update_relationship(array $object, string $id, string $predicate, string $uri, array $objects) {
+function si_update_relationship(array $object, $id, $predicate, $uri, array $objects) {
   si_update_relationships($object, array($id), $predicate, $uri, $objects);
 }
 
@@ -765,7 +765,7 @@ function si_find_objects(array $ids, array $objects) {
  * @return array
  *   The object properties we were looking for if found, otherwise FALSE.
  */
-function si_find_object(string $id, array $objects) {
+function si_find_object($id, array $objects) {
   $type = si_get_type_from_object_id($id);
   $objects = $objects[$type];
   if(!empty($objects)) {
@@ -780,7 +780,7 @@ function si_find_object(string $id, array $objects) {
 /**
  * Returns the type for the ID.
  */
-function si_get_type_from_object_id(string $id) {
+function si_get_type_from_object_id($id) {
   $types = array(TYPE_PERSON, TYPE_ORGANIZATION, TYPE_EXPEDITION, TYPE_COLLECTION, TYPE_FIELDBOOK);
   foreach($types as $type) {
     if(strpos($id, $type) !== FALSE) {
@@ -792,7 +792,7 @@ function si_get_type_from_object_id(string $id) {
 /**
  * Checks if the given string is an ID.
  */
-function si_is_id(string $id) {
+function si_is_id($id) {
   $types = array(TYPE_PERSON, TYPE_ORGANIZATION, TYPE_EXPEDITION, TYPE_COLLECTION, TYPE_FIELDBOOK);
   foreach($types as $type) {
     if(strpos($id, $type) !== FALSE) {
@@ -805,7 +805,7 @@ function si_is_id(string $id) {
 /**
  * Gets a destined DSID for the given type.
  */
-function si_get_dsid_from_object_id(string $id) {
+function si_get_dsid_from_object_id($id) {
   $dsid = array(TYPE_PERSON => 'EAC-CPF', TYPE_ORGANIZATION => 'EAC-CPF', TYPE_EXPEDITION =>'EAC-CPF', TYPE_COLLECTION => 'NCD', TYPE_FIELDBOOK => 'MODS');
   $type = si_get_type_from_object_id($id);
   return $dsid[$type];
