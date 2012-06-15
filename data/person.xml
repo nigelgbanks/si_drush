@@ -1,85 +1,95 @@
 <?xml version="1.0" encoding="UTF-8" ?><!-- This grammar has been deprecated - use FMPXMLRESULT instead -->
 <FMPDSORESULT xmlns="http://www.filemaker.com/fmpdsoresult">
- <ERRORCODE>0</ERRORCODE>
- <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
- <LAYOUT/>
- <ROW MODID="27" RECORDID="7">
-  <p_maintenance_history_agent>nakasones</p_maintenance_history_agent>
-  <p_maintenance_agency>Smithsonian Insitution Archives</p_maintenance_agency>
-  <p_eventDateTime1>2/8/2011</p_eventDateTime1>
-  <p_eventDateTimet2>2/7/2012</p_eventDateTimet2>
-  <p_eventDateTime3/>
-  <personID>EACP6</personID>
-  <p_lastname>Heinrich</p_lastname>
-  <p_firstname>Carl</p_firstname>
-  <p_middle_initial/>
-  <p_exist_date_b>1880</p_exist_date_b>
-  <p_exist_date_d>1955</p_exist_date_d>
-  <p_address1/>
-  <p_address2/>
-  <p_city/>
-  <p_state/>
-  <p_postalcode/>
-  <p_country/>
-  <p_URL/>
-  <p_phone/>
-  <p_email_address/>
-  <p_occupation>
-   <DATA>Lepidopterists</DATA>
-   <DATA>Entomologists</DATA>
-   <DATA/>
-   <DATA/>
-  </p_occupation>
-  <p_bio_history>Carl Heinrich (1880-1955) was born in New York and grew up in Nebraska. After
-   studying Greek and drama at the University of Chicago, he moved to Washington, D.C., in 1902,
-   where he worked in business. In 1908, he went to New York to study music. Heinrich moved back to
-   Washington and in 1913 joined the United States Department of Agriculture. He first worked on
-   applied entomology but later switched to the classification of Lepidoptera. </p_bio_history>
-  <p_primary_name>Heinrich, Carl, 1880-1955</p_primary_name>
-  <p_alt_name1/>
-  <p_alt_name2/>
-  <p_alt_name3/>
-  <p_language1>English</p_language1>
-  <p_language1_code>eng</p_language1_code>
-  <p_language1_script>Latin</p_language1_script>
-  <p_language1_script_code>Latn</p_language1_script_code>
-  <p_language2/>
-  <p_language2_code/>
-  <p_language2_script/>
-  <p_language2_script_code/>
-  <p_language3/>
-  <p_language3_code/>
-  <p_language3_script/>
-  <p_language3_script_code/>
-  <p_related_material>
-   <DATA>MODS</DATA>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-  </p_related_material>
-  <p_related_entity1>EACO</p_related_entity1>
-  <p_related_entity1_description/>
-  <p_related_entity2_description/>
-  <p_related_entity3_description/>
-  <p_related_entity2/>
-  <p_related_entity3/>
-  <p_source>
-   <DATA/>
-   <DATA/>
-   <DATA/>
-  </p_source>
-  <p_maintenanceStatus>revised</p_maintenanceStatus>
-  <p_publicationStatus>approved</p_publicationStatus>
- </ROW>
+    <ERRORCODE>0</ERRORCODE>
+    <DATABASE>FBR_Registry_Prototype.fp7</DATABASE>
+    <LAYOUT>MODS -- Item Level</LAYOUT>
+    <ROW MODID="23" RECORDID="19">
+        <p_maintenance_history_agent>parillal</p_maintenance_history_agent>
+        <p_maintenance_agency>Smithsonian Institution Archives</p_maintenance_agency>
+        <p_eventDateTime1>3/4/2011</p_eventDateTime1>
+        <p_eventDateTimet2>2/3/2012</p_eventDateTimet2>
+        <p_eventDateTime3/>
+        <personID>EACP18</personID>
+        <p_lastname>Chapin</p_lastname>
+        <p_firstname>Edward</p_firstname>
+        <p_middle_initial>A.</p_middle_initial>
+        <p_exist_date_b>1894</p_exist_date_b>
+        <p_exist_date_d>1969</p_exist_date_d>
+        <p_address1/>
+        <p_address2/>
+        <p_city/>
+        <p_state/>
+        <p_postalcode/>
+        <p_country/>
+        <p_URL/>
+        <p_phone/>
+        <p_email_address/>
+        <p_occupation>
+            <DATA>Entomologists</DATA>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+        </p_occupation>
+        <p_bio_history>Edward A. Chapin (1894-1969) was born and raised in Springfield
+            Massachusetts. He developed an early interest in natural sciences which he pursued
+            throughout his childhood. He graduated from Yale in 1916, and earned his M.Sc. from
+            Massachusetts State College, at Amherst [University of Massachusetts at Amherst] in
+            1917. He originally came to Washington, D.C., to work for the Bureau of the Biological
+            Survey, in 1920 switching to the Bureau of Animal Industry. He joined the staff of the
+            Smithsonian Institution, United States National Museum, Department of Entomology in
+            1926, assuming the position of curator of Insects in 1934. He held this position until
+            his retirement in 1954. His main area of study was Coleoptera (scarabaeid, coccinellid,
+            and clerid beetles). During his tenure as curator, he went on collecting trips and
+            traveled to Jamaica (1937, 1942); Colombia (1942, 1946); Chile (1948); and Europe
+            (1948). After retiring from the Smithsonian, he moved back to Massachusetts and for
+            several years worked as an Associate of the Museum of Comparative Zoology at Harvard
+            University.</p_bio_history>
+        <p_primary_name>Chapin, Edward A.</p_primary_name>
+        <p_alt_name1>Chapin, E. A.</p_alt_name1>
+        <p_alt_name2>Chapin, Edward Albert</p_alt_name2>
+        <p_alt_name3>Edward Chapin</p_alt_name3>
+        <p_language1>English</p_language1>
+        <p_language1_code>eng</p_language1_code>
+        <p_language1_script>Latin</p_language1_script>
+        <p_language1_script_code>Latn</p_language1_script_code>
+        <p_language2/>
+        <p_language2_code/>
+        <p_language2_script/>
+        <p_language2_script_code/>
+        <p_language3/>
+        <p_language3_code/>
+        <p_language3_script/>
+        <p_language3_script_code/>
+        <p_related_material>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+            <DATA/>
+        </p_related_material>
+        <p_related_entity1/>
+        <p_related_entity1_description/>
+        <p_related_entity2_description/>
+        <p_related_entity3_description/>
+        <p_related_entity2/>
+        <p_related_entity3/>
+        <p_source>
+            <DATA>Muesebeck, C.F.W., R.D. Gordon and B.D. Burks. 1971. Edward Albert Chapin.
+                Proceedings of the Entomological Society of Washington 73: 99-104. </DATA>
+            <DATA/>
+            <DATA/>
+        </p_source>
+        <p_maintenanceStatus>new</p_maintenanceStatus>
+        <p_publicationStatus>approved</p_publicationStatus>
+    </ROW>
 </FMPDSORESULT>

@@ -333,7 +333,7 @@ function si_create_empty_object(string $label, string $id) {
  * @param string $description
  *   The description to add to the DC.
  */
-function si_update_dc_description(FedoraItem $object, $description) {
+function si_update_dc_description(FedoraItem $object, string $description) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   module_load_include('inc', 'fedora_repository', 'api/dublin_core');
   $dc = new Dublin_Core($object);
@@ -461,7 +461,7 @@ function si_eaccpf_get_info(string $record) {
   return array_merge(array(
       'id' => $id,
       'label' => si_normalize_object_label(si_get_value_from_xml($xml, '//ns:identity/ns:nameEntry[@localType="primary"]/ns:part')),
-      'description' => si_get_values_from_xml($xml, '//ns:biogHist/ns:p'),
+      'description' => si_get_value_from_xml($xml, '//ns:biogHist/ns:p'),
       'cpf_relations' => si_get_values_from_xml($xml, '//ns:cpfRelation/@xlink:href'),
       'resource_relations' => si_get_values_from_xml($xml, '//ns:resourceRelation/@xlink:href'),
     ), $function($xml));
@@ -573,7 +573,7 @@ function si_get_simple_xml(string $record) {
  */
 function si_get_value_from_xml(SimpleXMLElement &$xml, string $xpath) {
   $results = $xml->xpath($xpath);
-  return is_array($results) ? (string) array_shift($xml->xpath($xpath)) : '';
+  return is_array($results) ? htmlspecialchars((string) array_shift($xml->xpath($xpath)), ENT_NOQUOTES, 'UTF-8') : '';
 }
 
 /**
@@ -584,7 +584,7 @@ function si_get_value_from_xml(SimpleXMLElement &$xml, string $xpath) {
  */
 function si_get_values_from_xml(SimpleXMLElement &$xml, string $xpath) {
   $results = $xml->xpath($xpath);
-  return is_array($results) ? array_map(function($o) { return (string) $o; }, $results) : array();
+  return is_array($results) ? array_map(function($o) { return htmlspecialchars((string) $o, ENT_NOQUOTES, 'UTF-8'); }, $results) : array();
 }
 
 /**
