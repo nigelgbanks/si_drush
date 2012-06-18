@@ -177,7 +177,7 @@ function si_ingest_organization($record) {
  */
 function si_ingest_expeditions() {
   $records = si_transform('expeditions.xml', 'EAC_expedition.xsl', 'eac-cpf');
-  return si_ingest_records($records, 'si_ingest_organization');
+  return si_ingest_records($records, 'si_ingest_expedition');
 }
 
 /**
