@@ -546,6 +546,7 @@ function si_mods_get_info($record) {
     'description' => si_get_value_from_xml($xml, '//ns:titleInfo/ns:abstract'),
     'related_names' => si_get_values_from_xml($xml, '//ns:name/@valueURI'),
     'related_items' => si_get_values_from_xml($xml, '//ns:relatedItem/ns:titleInfo/@valueURI'),
+    'collection' => si_get_value_from_xml($xml, '//nd:relatedItem[@type="host"]/ns:identifier'),
     'creators' => si_get_values_from_xml($xml, '//ns:name[ns:role/ns:roleTerm="creator"]/@valueURI'),
     'contributors' => si_get_values_from_xml($xml, '//ns:name[ns:role/ns:roleTerm="contributor"]/@valueURI'),
     'expeditions' => si_get_values_from_xml($xml, '//ns:subject/ns:name[@displayLabel="Expedition"]/@valueURI'),
