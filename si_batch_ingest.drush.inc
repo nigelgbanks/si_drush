@@ -29,9 +29,39 @@ function si_batch_ingest_drush_command() {
       ),
       'aliases' => array('ingest-fieldbooks'),
       'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
+    ),
+    'si_batch_test' => array(
+      'callback' => 'drush_si_batch_test',
+      'description' => "Ingests all fieldbook related data, make sure the proper data is in the drush directory.",
+      'examples' => array(
+        'drush ingest-fieldbooks',
+      ),
+      'aliases' => array('si_test'),
+      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
     )
   );
 }
+
+function drush_si_batch_test() {
+  /*module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  drush_print('test');
+  $query = 'select $object from <#ri> where $object <fedora-rels-ext:isMemberOfCollection> <info:fedora/si:fieldbooks>';
+  $results = si_run_query($query);
+  $objects = si_sparql_results_as_array($results); //turn xml into array
+  foreach ($objects as $pid) {
+    drush_print("Updating: ({$pid})");
+    $object = new Fedora_Item($pid);
+    $datastream = $object->get_datastream_dissemination("MODS");
+    $xml = si_get_simple_xml($datastream);
+    $collection = si_get_value_from_xml($xml, '//ns:relatedItem[@type="host"]/ns:identifier');
+    $query = 'select $object from <#ri> where $object <info:islandora/islandora-system:def/smithsonian#ncdId> ' . "'$collection'";
+    $results = si_run_query($query);
+    $collections = si_sparql_results_as_array($results); //turn xml into array
+    $collection = array_shift($collections);
+    $object->add_relationship('isMemberOfCollection', $collection);
+    }*/
+}
+
 
 /**
  * Generate/Ingest all field book related data. Make relevant relationships between the ingested data.
@@ -812,4 +842,32 @@ function si_get_dsid_from_object_id($id) {
   $dsid = array(TYPE_PERSON => 'EAC-CPF', TYPE_ORGANIZATION => 'EAC-CPF', TYPE_EXPEDITION =>'EAC-CPF', TYPE_COLLECTION => 'NCD', TYPE_FIELDBOOK => 'MODS');
   $type = si_get_type_from_object_id($id);
   return $dsid[$type];
+}
+
+
+/**
+ *
+ */
+function si_sparql_results_as_array($content) {
+  $content = new SimpleXMLElement($content);
+  $resultsarray = array();
+  foreach ($content->results->result as $result) {
+    $resultsarray[] = substr($result->object->attributes()->uri, 12); // Remove 'info:fedora/'.
+  }
+  return $resultsarray;
+}
+
+/**
+ *
+ */
+function si_run_query($query) {
+  module_load_include('inc', 'fedora_repository', 'CollectionClass');
+  $cc = new CollectionClass();
+  $results = $cc->getRelatedItems(NULL, $query,1000000);
+  if (isset($results)) {//still doesn't tell us if these are valid results
+    return $results;
+  }
+  else {
+    drush_print('Error get related items, relationships cannot be updated');
+  }
 }
