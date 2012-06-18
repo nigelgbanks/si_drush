@@ -727,8 +727,10 @@ function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, $xp
  * Creates relationships between all $ids.
  */
 function si_update_relationships(array $object, array $ids, $predicate, $uri, array $objects) {
-  array_walk(si_find_objects($ids, $objects), function($related_object) use($object, $predicate, $uri) {
-      $object->add_relationship($predicate, $related_object['pid'], $uri);
+  module_load_include('module', 'fedora_repository', 'api/fedora_item');
+  $item = new Fedora_Item($object['pid']);
+  array_walk(si_find_objects($ids, $objects), function($related_object) use($item, $predicate, $uri) {
+      $item->add_relationship($predicate, $related_object['pid'], $uri);
   });
 }
 
