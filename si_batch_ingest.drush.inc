@@ -43,23 +43,24 @@ function si_batch_ingest_drush_command() {
 }
 
 function drush_si_batch_test() {
-  /*module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  drush_print('test');
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  drush_print('testing');
   $query = 'select $object from <#ri> where $object <fedora-rels-ext:isMemberOfCollection> <info:fedora/si:fieldbooks>';
   $results = si_run_query($query);
   $objects = si_sparql_results_as_array($results); //turn xml into array
   foreach ($objects as $pid) {
-    drush_print("Updating: ({$pid})");
     $object = new Fedora_Item($pid);
     $datastream = $object->get_datastream_dissemination("MODS");
     $xml = si_get_simple_xml($datastream);
+    $id = si_get_value_from_xml($xml, '/ns:mods/@ID');
     $collection = si_get_value_from_xml($xml, '//ns:relatedItem[@type="host"]/ns:identifier');
     $query = 'select $object from <#ri> where $object <info:islandora/islandora-system:def/smithsonian#ncdId> ' . "'$collection'";
     $results = si_run_query($query);
     $collections = si_sparql_results_as_array($results); //turn xml into array
-    $collection = array_shift($collections);
-    $object->add_relationship('isMemberOfCollection', $collection);
-    }*/
+    if(empty($collections)) {
+      drush_print('Missing Collection: ' . $collection . ' from ' . $id);
+    }
+  }
 }
 
 
@@ -315,7 +316,7 @@ function si_transform($input, $transform, $root_element) {
   $directory = dirname(__FILE__);
   $xslt = new XSLTProcessor;
   $xslt->importStyleSheet(DOMDocument::load("$directory/xsl/$transform"));
-  $records = $xslt->transformToXML(DOMDocument::loadXML(file_get_contents("$directory/data/$input")));
+  $records = $xslt->transformToXML(DOMDocument::loadXML(file_get_contents("$directory/data/fieldbooks/$input")));
   $closing_tag = "</$root_element>";
   $records = explode($closing_tag, $records);
   $records = array_map('trim', $records);
@@ -336,6 +337,7 @@ function si_create_object(array &$properties, $thumbnail) {
   $properties['pid'] = $object->pid;
   si_update_dc_description($object, $properties['description']);
   si_add_thumbnail($object, $thumbnail);
+  si_add_policy($object);
   return $object;
 }
 
@@ -386,7 +388,29 @@ function si_update_dc_description(Fedora_Item $object, $description) {
  */
 function si_add_thumbnail(Fedora_Item $object, $thumbnail) {
   $directory = dirname(__FILE__);
-  si_add_datastream_from_file($object, 'TN', "$directory/images/$thumbnail", 'image/png');
+  si_add_datastream_from_file($object, 'TN', "$directory/data/images/$thumbnail", 'image/png');
+}
+
+/**
+ * Adds a POLICY datastream to the object.
+ *
+ * @param Fedora_Item $object
+ *   The fedora object to add the thumbnail to.
+ */
+function si_add_policy(Fedora_Item $object) {
+  $directory = dirname(__FILE__);
+  si_add_datastream_from_file($object, 'POLICY', "$directory/data/datastreams/POLICY.xml", 'text/xml');
+}
+
+/**
+ * Adds a COLLECTION_POLICY datastream to the object.
+ *
+ * @param Fedora_Item $object
+ *   The fedora object to add the thumbnail to.
+ */
+function si_add_collection_policy(Fedora_Item $object) {
+  $directory = dirname(__FILE__);
+  si_add_datastream_from_file($object, 'POLICY', "$directory/data/datastreams/COLLECTION_POLICY.xml", 'text/xml');
 }
 
 /**

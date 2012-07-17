@@ -1,36 +1,33 @@
 <?php
 
-/*
- * This file should be put in the islandora modules plugins directory
- * typical usage: drush -u 1 islandora_purge_pids collection:pid isMemberOf TRUE
- * the above would give you an interactive purge
- * if the last parameter is not TRUE then all the pids in the list will be purged without prompting
- * purging an object cannot be undone so use wisely (you have been warned)
+/**
+ * @file si_update_collection_policies.drush.inc
  */
 
-//drush hook
-
+/**
+ * Implements hook_drush_command().
+ */
 function si_update_collection_policies_drush_command() {
-  $items = array();
-
-  $items['si_update_collection_policies'] = array(
-    'description' => "updates or adds a collection policy to all objects returned by a query",
-    'arguments' => array(
-      'collection_policy_file' => 'The path to an XML file that contains the collection_policy',
-      'query_file' => 'The path to a plain text file that contains an itql query',
-      'interactive' => 'if TRUE then you will be asked to confirm the update for each object'
-    ),
-    'examples' => array(
-      'drush is_update_collection_policies /path/to/collection_policy.xml /path/to/query.txt',
-    ),
-    'aliases' => array('siucp'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // we can pass in users id on the command line using drush -u.
+  return array(
+    'si_update_collection_policies' => array(
+      'description' => "Updates or adds a collection policy to all objects returned by a query",
+      'arguments' => array(
+        'collection_policy_file' => 'The path to an XML file that contains the collection_policy',
+        'query_file' => 'The path to a plain text file that contains an itql query',
+        'interactive' => 'if TRUE then you will be asked to confirm the update for each object'
+      ),
+      'examples' => array(
+        'drush is_update_collection_policies /path/to/collection_policy.xml /path/to/query.txt',
+      ),
+      'aliases' => array('siucp'),
+      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // we can pass in users id on the command line using drush -u.
+    )
   );
-
-  return $items;
 }
 
-//drush hook
+/**
+ * Implements drush_hook().
+ */
 function drush_si_update_collection_policies($collection_policy_file, $query_file, $interactive) {
   drush_print('Current working directory ' . getcwd());
   if (isset($collection_policy_file)) {
@@ -50,7 +47,9 @@ function drush_si_update_collection_policies($collection_policy_file, $query_fil
   si_update_collection_policies_doAction($collection_policy_file, $query_file, $interactive);
 }
 
-//just a function
+/**
+ *
+ */
 function si_update_collection_policies_doAction($collection_policy_file, $query_file, $interactive) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $query = file_get_contents($query_file);
@@ -93,7 +92,7 @@ function si_update_collection_policies_doAction($collection_policy_file, $query_
 /**
  *
  * @param fedora_item $item
- * @param string $collection_policy_file 
+ * @param string $collection_policy_file
  */
 function si_update_collection_policy($item, $url) {
 
@@ -133,5 +132,3 @@ function si_update_collection_policies_run_query($query) {
     return NULL;
   }
 }
-
-?>
