@@ -64,7 +64,7 @@ $object <fedora-model:hasModel> <info:fedora/si:dwcCModel>
   foreach ($objects as $pid) {
     $item = new Fedora_Item($pid);
     if (!isset($item->datastreams['COLLECTION_POLICY'])) {
-      //si_add_collection_policy($item);
+      si_add_collection_policy($item);
       drush_print("Missing COLLECTION_POLICY: $pid");
     }
     else {
@@ -419,7 +419,7 @@ function si_add_policy(Fedora_Item $object) {
  */
 function si_add_collection_policy(Fedora_Item $object) {
   $directory = dirname(__FILE__);
-  si_add_datastream_from_file($object, 'POLICY', "$directory/data/datastreams/COLLECTION_POLICY.xml", 'text/xml');
+  si_add_datastream_from_file($object, 'COLLECTION_POLICY', "$directory/data/datastreams/COLLECTION_POLICY.xml", 'text/xml');
 }
 
 /**
