@@ -42,27 +42,36 @@ function si_batch_ingest_drush_command() {
   );
 }
 
+
 function drush_si_batch_test() {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   drush_print('testing');
-  $query = 'select $object from <#ri> where $object <fedora-rels-ext:isMemberOfCollection> <info:fedora/si:fieldbooks>';
+  $query = 'select $object from <#ri> where
+$object <fedora-model:hasModel> <info:fedora/si:ctCollectionCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:ctPlotCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:cameraTrapCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:cameraTrapDeploymentCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:organizationCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:peopleCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:expeditionCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:ncdCollectionCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:dwcCModel>
+';
   $results = si_run_query($query);
   $objects = si_sparql_results_as_array($results); //turn xml into array
   foreach ($objects as $pid) {
-    $object = new Fedora_Item($pid);
-    $datastream = $object->get_datastream_dissemination("MODS");
-    $xml = si_get_simple_xml($datastream);
-    $id = si_get_value_from_xml($xml, '/ns:mods/@ID');
-    $collection = si_get_value_from_xml($xml, '//ns:relatedItem[@type="host"]/ns:identifier');
-    $query = 'select $object from <#ri> where $object <info:islandora/islandora-system:def/smithsonian#ncdId> ' . "'$collection'";
-    $results = si_run_query($query);
-    $collections = si_sparql_results_as_array($results); //turn xml into array
-    if(empty($collections)) {
-      drush_print('Missing Collection: ' . $collection . ' from ' . $id);
+    $item = new Fedora_Item($pid);
+    if (!isset($item->datastreams['COLLECTION_POLICY'])) {
+      //si_add_collection_policy($item);
+      drush_print("Missing COLLECTION_POLICY: $pid");
+    }
+    else {
+      drush_print("Has COLLECTION_POLICY: $pid");
     }
   }
 }
-
 
 /**
  * Generate/Ingest all field book related data. Make relevant relationships between the ingested data.
