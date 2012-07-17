@@ -683,6 +683,7 @@ function si_update_object(array $object, $type, array $objects) {
  */
 function si_update_person(array $object, array $objects) {
   si_update_eaccpf($object, $objects);
+  si_add_collection_policy_to_object($object);
 }
 
 /**
@@ -696,6 +697,7 @@ function si_update_person(array $object, array $objects) {
 function si_update_organization(array $object, array $objects) {
   si_update_eaccpf($object, $objects);
   si_update_relationship($object, $object['parent'], 'isMemberOfCollection', RELS_EXT_URI, $objects);
+  si_add_collection_policy_to_object($object);
 }
 
 /**
@@ -708,6 +710,7 @@ function si_update_organization(array $object, array $objects) {
  */
 function si_update_expedition(array $object, array $objects) {
   si_update_eaccpf($object, $objects);
+  si_add_collection_policy_to_object($object);
 }
 
 /**
@@ -730,6 +733,7 @@ function si_update_eaccpf(array $object, array $objects) {
  */
 function si_update_collection(array $object, array $objects) {
   // Collections have no place to store the ID's
+  si_add_collection_policy_to_object($object);
 }
 
 /**
@@ -787,6 +791,14 @@ function si_update_relationships(array $object, array $ids, $predicate, $uri, ar
   array_walk(si_find_objects($ids, $objects), function($related_object) use($item, $predicate, $uri) {
       $item->add_relationship($predicate, $related_object['pid'], $uri);
   });
+}
+
+/**
+ * Adds a COLLECTION_POLICY to the given object.
+ */
+function si_add_collection_policy_to_object(array $object) {
+  list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
+  si_add_collection_policy($item);
 }
 
 /**
