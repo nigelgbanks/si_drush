@@ -13,6 +13,7 @@
     <content_model dsid="ISLANDORACM" name="Expedition" namespace="si:" pid="si:expeditionCModel"></content_model>
     <content_model dsid="ISLANDORACM" name="Camera trap" namespace="si:" pid="si:cameraTrapCModel"></content_model>
     <content_model dsid="ISLANDORACM" name="Animal or plant species" namespace="si:" pid="si:dwcCModel"></content_model>
+    <content_model dsid="ISLANDORACM" name="Lido object" namespace="si:" pid="si:lidoCollectionCModel"></content_model>
   </concept_models>
   <search_terms>
     <term field="dc.title">dc.title</term>
