@@ -56,7 +56,8 @@ $object <fedora-model:hasModel> <info:fedora/si:expeditionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:ncdCollectionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:lidoCollectionCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:dwcCModel>';
+$object <fedora-model:hasModel> <info:fedora/si:dwcCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:collectionCModel>';
   $results = si_run_query($query);
   $objects = si_sparql_results_as_array($results); //turn xml into array
   foreach ($objects as $pid) {
