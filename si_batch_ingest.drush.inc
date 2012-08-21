@@ -47,28 +47,27 @@ function drush_si_batch_test() {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   drush_print('testing');
   $query = 'select $object from <#ri> where
-$object <fedora-model:hasModel> <info:fedora/si:ctCollectionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:ctPlotCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:cameraTrapCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:cameraTrapDeploymentCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:organizationCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:peopleCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:expeditionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:ncdCollectionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:dwcCModel>
-';
+$object <fedora-model:hasModel> <info:fedora/si:lidoCollectionCModel> or
+$object <fedora-model:hasModel> <info:fedora/si:dwcCModel>';
   $results = si_run_query($query);
   $objects = si_sparql_results_as_array($results); //turn xml into array
   foreach ($objects as $pid) {
     $item = new Fedora_Item($pid);
     if (!isset($item->datastreams['COLLECTION_POLICY'])) {
+      drush_print("Adding COLLECTION_POLICY: $pid");
       si_add_collection_policy($item);
-      drush_print("Missing COLLECTION_POLICY: $pid");
     }
     else {
-      drush_print("Has COLLECTION_POLICY: $pid");
+      drush_print("Updating COLLECTION_POLICY: ($pid)");
+      si_update_collection_policy_new($item);
     }
   }
 }
@@ -420,6 +419,21 @@ function si_add_policy(Fedora_Item $object) {
 function si_add_collection_policy(Fedora_Item $object) {
   $directory = dirname(__FILE__);
   si_add_datastream_from_file($object, 'COLLECTION_POLICY', "$directory/data/datastreams/COLLECTION_POLICY.xml", 'text/xml');
+}
+
+/**
+ * Adds a COLLECTION_POLICY datastream to the object.
+ *
+ * @param Fedora_Item $object
+ *   The fedora object to add the thumbnail to.
+ */
+function si_update_collection_policy_new(Fedora_Item $object) {
+  $directory = dirname(__FILE__);
+  $xml = new DOMDocument();
+  $datastream = $object->get_datastream('COLLECTION_POLICY');
+
+  $xml->load("$directory/data/datastreams/COLLECTION_POLICY.xml");
+  $object->modify_datastream_by_value($xml->saveXML(), 'COLLECTION_POLICY', 'COLLECTION_POLICY', 'text/xml');
 }
 
 /**
