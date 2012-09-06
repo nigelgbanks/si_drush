@@ -44,7 +44,6 @@ function si_batch_ingest_drush_command() {
 
 
 function drush_si_batch_test() {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   drush_print('testing');
   $query = 'select $object from <#ri> where
 $object <fedora-model:hasModel> <info:fedora/si:ctPlotCModel> or
@@ -61,6 +60,7 @@ $object <fedora-model:hasModel> <info:fedora/si:ctCollectionCModel> or
 $object <fedora-model:hasModel> <info:fedora/si:collectionCModel>';
   $results = si_run_query($query);
   $objects = si_sparql_results_as_array($results); //turn xml into array
+  /*
   foreach ($objects as $pid) {
     $item = new Fedora_Item($pid);
     if (!isset($item->datastreams['COLLECTION_POLICY'])) {
@@ -69,19 +69,39 @@ $object <fedora-model:hasModel> <info:fedora/si:collectionCModel>';
     }
     else {
       drush_print("Updating COLLECTION_POLICY: ($pid)");
-      si_update_collection_policy_new($item);
+      si_update_collection_policy($item);
     }
-  }
+    }*/
 }
 
 /**
- * Generate/Ingest all field book related data. Make relevant relationships between the ingested data.
+ * Generate/Ingest all field book related data. Also makes relevant relationships between the ingested data.
  */
 function drush_si_batch_ingest_fieldbooks() {
-  $url = variable_get('fedora_base_url', 'http://localhost:8080/fedora');
-  drush_print("Batch Ingesting Fieldbooks into Fedora repository: $url");
-  $objects = si_batch_ingest_all();
-  si_batch_update_all($objects);
+  drush_print('Batch Ingesting Fieldbooks into Fedora repository: ' . variable_get('fedora_base_url', 'http://localhost:8080/fedora'));
+  si_utils_drush_init(); // Initialize utils file.
+  $ingest_functions = array(
+    TYPE_PERSON => 'si_ingest_person',
+    TYPE_ORGANIZATION => 'si_ingest_organization',
+    TYPE_EXPEDITION => 'si_ingest_expedition',
+    TYPE_COLLECTION => 'si_ingest_collection',
+    TYPE_FIELDBOOK => 'si_ingest_fieldbook'
+  );
+  $xml_records = array(
+    TYPE_PERSON => si_fieldbook_transform_records('persons.xml', 'EAC_person.xsl', 'eac-cpf'),
+    TYPE_ORGANIZATION => si_fieldbook_transform_records('organizations.xml', 'EAC_organization.xsl', 'eac-cpf'),
+    TYPE_EXPEDITION => si_fieldbook_transform_records('expeditions.xml', 'EAC_expedition.xsl', 'eac-cpf'),
+    TYPE_COLLECTION => si_fieldbook_transform_records('collections.xml', 'NCD_collection.xsl', 'RecordSet'),
+    TYPE_FIELDBOOK => si_fieldbook_transform_records('fieldbooks.xml', 'MODS_fieldbook.xsl', 'mods')
+  );
+  $update_functions = array(
+    TYPE_PERSON => 'si_update_person',
+    TYPE_ORGANIZATION => 'si_update_organization',
+    TYPE_EXPEDITION => 'si_update_expedition',
+    TYPE_COLLECTION => 'si_update_collection',
+    TYPE_FIELDBOOK => 'si_update_fieldbook'
+  );
+  si_batch_update($update_functions, si_batch_ingest($ingest_functions, $xml_records));
   drush_print("The batch ingest was successful");
 }
 
@@ -104,22 +124,45 @@ function drush_si_batch_ingest_fieldbooks_validate() {
 }
 
 /**
+ * Transforms the given input with the given tranformation.
+ *
+ * The given files are expected to live in the data/xsl directories respectively.
+ *
+ * @param string $file
+ *   The file to be tranformed.
+ * @param string $tranform to be applied.
+ *   The xsl transform to apply
+ * @param string $root_element
+ *   The case-sensitive name of the root element in the transformed records.
+ *
+ * @returns array
+ *   Each record as a string.
+ */
+function si_fieldbook_transform_records($file, $transform, $root_element) {
+  $directory = dirname(__FILE__);
+  $input = si_transform_xml_file("$directory/data/fieldbooks/$file", "$directory/xsl/$transform", $root_element);
+  return si_split_xml_file($input, $root_element);
+}
+
+/**
  * Batch ingest all the availible objects.
+ *
+ * @param array $ingest_functions
+ *   An array of key values pairs where each key is a group of objects, and each value is a
+ *   function that returns ingested objects that belong to that group.
+ * @param array $records
+ *   An array of key values pairs where each key is a group of objects, and each value is a
+ *   array of xml records to be ingested.
  *
  * @return array
  *   An array of all the objects created, grouped by the types defined at the top of this file.
  */
-function si_batch_ingest_all() {
-  static $ingest_functions = array(
-    TYPE_PERSON => 'si_ingest_persons',
-    TYPE_ORGANIZATION => 'si_ingest_organizations',
-    TYPE_EXPEDITION => 'si_ingest_expeditions',
-    TYPE_COLLECTION => 'si_ingest_collections',
-    TYPE_FIELDBOOK => 'si_ingest_fieldbooks'
-  );
+function si_batch_ingest(array $ingest_functions, array $records) {
   $objects = array();
   foreach($ingest_functions as $key => $function) {
-    $objects[$key] = $function();
+    foreach($records[$key] as $record) {
+      $objects[$key][] = $function($record);
+    }
   }
   $count = array_reduce($objects, function($result, $object_group) { return $result + count($object_group); }, 0);
   drush_print("Ingested $count Objects");
@@ -127,36 +170,22 @@ function si_batch_ingest_all() {
 }
 
 /**
- * Batch update all the ingested objects.
+ * Batch update all the ingested objects. Sometimes we don't have the all the information required for populating
+ * an object's meta-data or data-streams until some of its related objects have been ingested.
+ *
+ * @param array $update_functions
+ *   An array of key values pairs where each key is a group of objects, and each value is a
+ *   function that updates objects within that group.
+ * @param array $objects
+ *   The objects to be updated.
  */
-function si_batch_update_all(array $objects) {
-  foreach($objects as $key => $grouped_objects) {
-    foreach($grouped_objects as $object) {
-      si_update_object($object, $key, $objects);
+function si_batch_update(array $update_functions, array $objects) {
+  foreach($update_functions as $key => $function) {
+    foreach($objects[$key] as $object) {
+      drush_print("Updating object: {$object['label']} ({$object['pid']}/{$object['id']})");
+      $function($object, $objects);
     }
   }
-}
-
-/**
- * Ingest the given records using the given function.
- */
-function si_ingest_records(array $records, $function) {
-  $objects = array();
-  foreach($records as $record) {
-    $objects[] = $function($record);
-  }
-  return $objects;
-}
-
-/**
- * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of Person Records.
- *
- * @return array
- *   A description of the ingested object, including any relevent information for updating its relations.
- */
-function si_ingest_persons() {
-  $records = si_transform('persons.xml', 'EAC_person.xsl', 'eac-cpf');
-  return si_ingest_records($records, 'si_ingest_person');
 }
 
 /**
@@ -174,20 +203,9 @@ function si_ingest_person($record) {
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:people');
   $object->add_relationship('hasModel', 'si:peopleCModel', FEDORA_MODEL_URI);
-  si_add_relation_literal($object, EACP_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  si_add_external_relation_literal($object, EACP_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
-}
-
-/**
- * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of the Organization Records.
- *
- * @return array
- *   A description of the ingested object, including any relevent information for updating its relations.
- */
-function si_ingest_organizations() {
-  $records = si_transform('organizations.xml', 'EAC_organization.xsl', 'eac-cpf');
-  return si_ingest_records($records, 'si_ingest_organization');
 }
 
 /**
@@ -205,20 +223,9 @@ function si_ingest_organization($record) {
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:organizations');
   $object->add_relationship('hasModel', 'si:organizationCModel', FEDORA_MODEL_URI);
-  si_add_relation_literal($object, EACO_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  si_add_external_relation_literal($object, EACO_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
-}
-
-/**
- * Generates/Ingests EAC-CPF records for each row in the FileMaker Pro dump of the Expeditions Records.
- *
- * @return array
- *   A description of the ingested object, including any relevent information for updating its relations.
- */
-function si_ingest_expeditions() {
-  $records = si_transform('expeditions.xml', 'EAC_expedition.xsl', 'eac-cpf');
-  return si_ingest_records($records, 'si_ingest_expedition');
 }
 
 /**
@@ -236,20 +243,9 @@ function si_ingest_expedition($record) {
   si_add_datastream_from_string($object, 'EAC-CPF', $record);
   $object->add_relationship('isMemberOfCollection', 'si:expeditions');
   $object->add_relationship('hasModel', 'si:expeditionCModel', FEDORA_MODEL_URI);
-  si_add_relation_literal($object, EACE_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  si_add_external_relation_literal($object, EACE_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
-}
-
-/**
- * Generates/Ingests NCD records for each row in the FileMaker Pro dump of the Collection Records.
- *
- * @return array
- *   A description of the ingested object, including any relevent information for updating its relations.
- */
-function si_ingest_collections() {
-  $records = si_transform('collections.xml', 'NCD_collection.xsl', 'RecordSet');
-  return si_ingest_records($records, 'si_ingest_collection');
 }
 
 /**
@@ -267,20 +263,9 @@ function si_ingest_collection($record) {
   si_add_datastream_from_string($object, 'NCD', $record);
   $object->add_relationship('isMemberOfCollection', 'si:collections');
   $object->add_relationship('hasModel', 'si:ncdCollectionCModel', FEDORA_MODEL_URI);
-  si_add_relation_literal($object, NCD_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  si_add_external_relation_literal($object, NCD_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   $object->forget(); // Prevent Memory Leaks
   return $data;
-}
-
-/**
- * Generates/Ingests MODS records for each row in the FileMaker Pro dump of the Fieldbook Records.
- *
- * @return array
- *   A description of the ingested object, including any relevent information for updating its relations.
- */
-function si_ingest_fieldbooks() {
-  $records = si_transform('fieldbooks.xml', 'MODS_fieldbook.xsl', 'mods');
-  return si_ingest_records($records, 'si_ingest_fieldbook');
 }
 
 /**
@@ -298,225 +283,12 @@ function si_ingest_fieldbook($record) {
   si_add_datastream_from_string($object, 'MODS', $record);
   $object->add_relationship('hasModel', 'si:fieldbookCModel', FEDORA_MODEL_URI);
   $object->add_relationship('isMemberOfCollection', 'si:fieldbooks');
-  si_add_relation_literal($object, MODS_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
+  si_add_external_relation_literal($object, MODS_ID_PREDICATE, $data['id'], SMITHSONIAN_ONTOLOGY_URI);
   if(!empty($data['alt_id'])) {
-    si_add_relation_literal($object, ALT_ID_PREDICATE, $data['alt_id'], SMITHSONIAN_ONTOLOGY_URI);
+    si_add_external_relation_literal($object, ALT_ID_PREDICATE, $data['alt_id'], SMITHSONIAN_ONTOLOGY_URI);
   }
   $object->forget(); // Prevent Memory Leaks
   return $data;
-}
-
-/**
- * Transforms the given input with the given tranformation.
- *
- * The given files are expected to live in the data/xsl directories respectively.
- *
- * @param string $input
- *   The file to be tranformed.
- * @param string $tranformn to be applied.
- *   The xsl transform to apply
- * @param string $root_element
- *   The case-sensitive name of the root element in the transformed records.
- *
- * @returns array
- *   Each record as a string.
- */
-function si_transform($input, $transform, $root_element) {
-  drush_print("Transforming $input with $transform");
-  $directory = dirname(__FILE__);
-  $xslt = new XSLTProcessor;
-  $xslt->importStyleSheet(DOMDocument::load("$directory/xsl/$transform"));
-  $records = $xslt->transformToXML(DOMDocument::loadXML(file_get_contents("$directory/data/fieldbooks/$input")));
-  $closing_tag = "</$root_element>";
-  $records = explode($closing_tag, $records);
-  $records = array_map('trim', $records);
-  $records = array_filter($records);
-  foreach($records as &$record) {
-    $record .= $closing_tag;
-  }
-  $count = count($records);
-  drush_print("Transformed $count records in $input");
-  return $records;
-}
-
-/**
- * Creates a object with the given attributes.
- */
-function si_create_object(array &$properties, $thumbnail) {
-  $object = si_create_empty_object($properties['label'], $properties['id']);
-  $properties['pid'] = $object->pid;
-  si_update_dc_description($object, $properties['description']);
-  si_add_thumbnail($object, $thumbnail);
-  si_add_policy($object);
-  return $object;
-}
-
-/**
- * Creates a empty Fedora Object.
- *
- * @param string $label
- *   The label for the object.
- * @return Fedora_Item
- *   The newly created Fedora_Item.
- */
-function si_create_empty_object($label, $id) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  $pid = Fedora_Item::get_next_PID_in_namespace('si');
-  drush_print("Creating object: {$label} ($pid/$id)");
-  $object = Fedora_Item::ingest_new_item($pid, 'A', $label);
-  return $object;
-}
-
-/**
- * Updates and objects DC datastreams dc:description element with the given description.
- *
- * @param Fedora_Item $object
- *   The object to modify.
- * @param string $description
- *   The description to add to the DC.
- */
-function si_update_dc_description(Fedora_Item $object, $description) {
-  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
-  module_load_include('inc', 'fedora_repository', 'api/dublin_core');
-  $dc = new Dublin_Core($object);
-  if (isset($description)) {
-    $dc->set_element('dc:description', $description);
-  }
-  else {
-    drush_print("error adding description to dc, description not set.");
-  }
-  $dc->save();
-}
-
-/**
- * Adds a thumbnail datastream to the object.
- *
- * @param Fedora_Item $object
- *   The fedora object to add the thumbnail to.
- * @param string $thumbnail
- *   The name of the thumbnail in the images directory.
- */
-function si_add_thumbnail(Fedora_Item $object, $thumbnail) {
-  $directory = dirname(__FILE__);
-  si_add_datastream_from_file($object, 'TN', "$directory/data/images/$thumbnail", 'image/png');
-}
-
-/**
- * Adds a POLICY datastream to the object.
- *
- * @param Fedora_Item $object
- *   The fedora object to add the thumbnail to.
- */
-function si_add_policy(Fedora_Item $object) {
-  $directory = dirname(__FILE__);
-  si_add_datastream_from_file($object, 'POLICY', "$directory/data/datastreams/POLICY.xml", 'text/xml');
-}
-
-/**
- * Adds a COLLECTION_POLICY datastream to the object.
- *
- * @param Fedora_Item $object
- *   The fedora object to add the thumbnail to.
- */
-function si_add_collection_policy(Fedora_Item $object) {
-  $directory = dirname(__FILE__);
-  si_add_datastream_from_file($object, 'COLLECTION_POLICY', "$directory/data/datastreams/COLLECTION_POLICY.xml", 'text/xml');
-}
-
-/**
- * Adds a COLLECTION_POLICY datastream to the object.
- *
- * @param Fedora_Item $object
- *   The fedora object to add the thumbnail to.
- */
-function si_update_collection_policy_new(Fedora_Item $object) {
-  $directory = dirname(__FILE__);
-  $xml = new DOMDocument();
-  $datastream = $object->get_datastream('COLLECTION_POLICY');
-
-  $xml->load("$directory/data/datastreams/COLLECTION_POLICY.xml");
-  $object->modify_datastream_by_value($xml->saveXML(), 'COLLECTION_POLICY', 'COLLECTION_POLICY', 'text/xml');
-}
-
-/**
- * Adds a datastream based on the given attributes, where URL points to a file to be added.
- *
- * @param Fedora_Item $object
- *  The object to add the datastream to.
- * @param string $dsid
- *  The datastream id
- * @param string $url
- *  The url to the file to add
- * @param string $mimetype
- *  The mime type of the datastream
- * @param string $label
- *  The label of the datastream
- * @param string $control_group
- *  The control group for the datastream
- */
-function si_add_datastream_from_file(Fedora_Item $object, $dsid, $file, $mimetype, $label = NULL, $control_group = 'M') {
-  $label = isset($label) ? $label : $dsid;
-  if ($object->add_datastream_from_file($file, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
-    drush_print("Added datastream $dsid to {$object->pid}");
-  }
-  else {
-    drush_print("Failed adding $dsid to {$object->pid} using file $url");
-  }
-}
-
-/**
- * Adds a datastream based on the given attributes, where the content of the datastream is given in $string.
- *
- * @param Fedora_Item $object
- *  The object to add the datastream to.
- * @param string $dsid
- *  The datastream id
- * @param string $string
- *  The content of the datastream
- * @param string $mimetype
- *  The mime type of the datastream
- * @param string $label
- *  The label of the datastream
- * @param string $control_group
- *  The control group for the datastream
- */
-function si_add_datastream_from_string(Fedora_Item $object, $dsid, $string, $mimetype = 'text/xml', $label = '', $control_group = 'M') {
-  $label = isset($label) ? $label : $dsid;
-  if ($object->add_datastream_from_string($string, $dsid, $label, $mimetype, $control_group, "Added $dsid Stream")) {
-    drush_print("Added datastream $dsid to {$object->pid}");
-  }
-  else {
-    drush_print("Failed adding $dsid to {$object->pid} using file $url");
-  }
-}
-
-/**
- * Adds a literal value to the RELS-EXT datastream so that it can be used in the Resource Index.
- *
- * @param Fedora_Item $object
- *   The object to add the relationship to.
- * @param string $predicate
- *   The relationship predicate.
- * @param string $literal
- *   The value of the relationship
- * @param string $uri
- *   The namespace in which to add the relationship.
- */
-function si_add_relation_literal(Fedora_Item $object, $predicate, $literal, $uri) {
-  $ds_list = $object->get_datastreams_list_as_array();
-  if (empty($ds_list['RELS-EXT'])) {
-    $empty_rels_ext =
-	"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
-          <rdf:Description rdf:about='info:fedora/{$object->pid}'>
-          </rdf:Description>
-        </rdf:RDF>";
-    $object->add_datastream_from_string($empty_rels_ext, 'RELS-EXT', 'Fedora object-to-object relationship metadata', 'text/xml', 'X');
-  }
-  $rels_ext = $object->get_datastream_dissemination('RELS-EXT');
-  $xml = new SimpleXMLElement($rels_ext);
-  $description = array_shift($xml->xpath('//*[local-name() = "Description" or local-name() = "description"]'));
-  $relationship = $description->addChild($predicate, $literal, $uri);
-  $object->modify_datastream_by_value($xml->asXML(), 'RELS-EXT', "Fedora Object-to-Object Relationship Metadata", 'text/xml');
 }
 
 /**
@@ -635,70 +407,6 @@ function si_mods_get_info($record) {
 }
 
 /**
- * Gets the string as a simple xml object, with 'ns' as the default namespace.
- */
-function si_get_simple_xml($record) {
-  $xml = simplexml_load_string($record);
-  $namespaces = $xml->getDocNamespaces();
-  $xml->registerXPathNamespace('ns', $namespaces['']);
-  $xml->registerXPathNamespace('xlink', $namespaces['xlink']);
-  return $xml;
-}
-
-/**
- * Gets a single value from the node specified by the given $xpath
- *
- * @return string
- *   The requested value if found, otherwise an empty string.
- */
-function si_get_value_from_xml(SimpleXMLElement &$xml, $xpath) {
-  $results = $xml->xpath($xpath);
-  return is_array($results) ? htmlspecialchars((string) array_shift($xml->xpath($xpath)), ENT_NOQUOTES, 'UTF-8') : '';
-}
-
-/**
- * Gets a values from the nodes specified by the given $xpath
- *
- * @return array
- *   The requested values if found, otherwise an empty array.
- */
-function si_get_values_from_xml(SimpleXMLElement &$xml, $xpath) {
-  $results = $xml->xpath($xpath);
-  return is_array($results) ? array_map(function($o) { return htmlspecialchars((string) $o, ENT_NOQUOTES, 'UTF-8'); }, $results) : array();
-}
-
-/**
- * Normalizes the label for the fedora object.
- */
-function si_normalize_object_label($label) {
-  // @TODO do the full regex check
-  return (strlen($label) > 255) ? substr($label, 0, 254) : $label;
-}
-
-/**
- * Updates the given object using data stored in other objects.
- *
- * @param array $object
- *   Properties that define a object to update.
- * @param string $type
- *   The TYPE of the object properties as defined at the top of this file.
- * @param array $objects
- *   Properties that define all the objects.
- */
-function si_update_object(array $object, $type, array $objects) {
-  static $update_functions = array(
-    TYPE_PERSON => 'si_update_person',
-    TYPE_ORGANIZATION => 'si_update_organization',
-    TYPE_EXPEDITION => 'si_update_expedition',
-    TYPE_COLLECTION => 'si_update_collection',
-    TYPE_FIELDBOOK => 'si_update_fieldbook'
-  );
-  $function = $update_functions[$type];
-  drush_print("Updating object: {$object['label']} ({$object['pid']}/{$object['id']})");
-  $function($object, $objects);
-}
-
-/**
  * Update the Person Object identified by the properties in $object.
  *
  * @param array $object
@@ -783,7 +491,6 @@ function si_update_fieldbook(array $object, array $objects) {
  * Fetchs the object and its metadata.
  */
 function si_get_objects_item_and_metadata(array $object) {
-  module_load_include('module', 'fedora_repository', 'api/fedora_item');
   $item = new Fedora_Item($object['pid']);
   $dsid = si_get_dsid_from_object_id($object['id']);
   $ds = $item->get_datastream_dissemination($dsid);
@@ -808,22 +515,21 @@ function si_update_references_with_label(SimpleXMLElement &$xml, array $ids, $xp
 }
 
 /**
- * Creates relationships between all $ids.
- */
-function si_update_relationships(array $object, array $ids, $predicate, $uri, array $objects) {
-  module_load_include('module', 'fedora_repository', 'api/fedora_item');
-  $item = new Fedora_Item($object['pid']);
-  array_walk(si_find_objects($ids, $objects), function($related_object) use($item, $predicate, $uri) {
-      $item->add_relationship($predicate, $related_object['pid'], $uri);
-  });
-}
-
-/**
  * Adds a COLLECTION_POLICY to the given object.
  */
 function si_add_collection_policy_to_object(array $object) {
   list($item, $dsid, $xml) = si_get_objects_item_and_metadata($object);
   si_add_collection_policy($item);
+}
+
+/**
+ * Creates relationships between all $ids.
+ */
+function si_update_relationships(array $object, array $ids, $predicate, $uri, array $objects) {
+  $item = new Fedora_Item($object['pid']);
+  array_walk(si_find_objects($ids, $objects), function($related_object) use($item, $predicate, $uri) {
+      $item->add_relationship($predicate, $related_object['pid'], $uri);
+  });
 }
 
 /**
@@ -903,32 +609,4 @@ function si_get_dsid_from_object_id($id) {
   $dsid = array(TYPE_PERSON => 'EAC-CPF', TYPE_ORGANIZATION => 'EAC-CPF', TYPE_EXPEDITION =>'EAC-CPF', TYPE_COLLECTION => 'NCD', TYPE_FIELDBOOK => 'MODS');
   $type = si_get_type_from_object_id($id);
   return $dsid[$type];
-}
-
-
-/**
- *
- */
-function si_sparql_results_as_array($content) {
-  $content = new SimpleXMLElement($content);
-  $resultsarray = array();
-  foreach ($content->results->result as $result) {
-    $resultsarray[] = substr($result->object->attributes()->uri, 12); // Remove 'info:fedora/'.
-  }
-  return $resultsarray;
-}
-
-/**
- *
- */
-function si_run_query($query) {
-  module_load_include('inc', 'fedora_repository', 'CollectionClass');
-  $cc = new CollectionClass();
-  $results = $cc->getRelatedItems(NULL, $query,1000000);
-  if (isset($results)) {//still doesn't tell us if these are valid results
-    return $results;
-  }
-  else {
-    drush_print('Error get related items, relationships cannot be updated');
-  }
 }

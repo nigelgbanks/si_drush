@@ -77,43 +77,15 @@ function si_update_collection_policies_doAction($collection_policy_file, $query_
     foreach ($objects as $object) {
       if (drush_confirm(dt('update this collection @pid ?', array('@pid' => $object)))) {
         $item = new Fedora_Item($object);
-        si_update_collection_policy($item, $url);
+        si_set_collection_policy($item, $url);
       }
     }
   }
   else {
     foreach ($objects as $object) {
       $item = new Fedora_Item($object);
-      si_update_collection_policy($item, $url);
+      si_set_collection_policy($item, $url);
     }
-  }
-}
-
-/**
- *
- * @param fedora_item $item
- * @param string $collection_policy_file
- */
-function si_update_collection_policy($item, $url) {
-
-  if (isset($item->datastreams["COLLECTION_POLICY"])) {
-    drush_print("COLLECTION_POLICY exists updating datastream");
-    $datastream_info = $item->get_datastream_info("COLLECTION_POLICY");
-    $control_group = $datastream_info->datastream->controlGroup;
-    if ((string)$control_group == 'X') {
-      $content = file_get_contents($url);
-      $result = $item->modify_datastream_by_value($content, 'COLLECTION_POLICY', 'COLLECTION_POLICY', 'text/xml',  FALSE,  'Modified by drush update collection policy');
-    }
-    else {
-      $result = $item->modify_datastream_by_reference($url, "COLLECTION_POLICY", "COLLECTION_POLICY", "text/xml", $force = FALSE, $logMessage = 'Modified by drush update collection policy');
-    }
-  }
-  else {
-    drush_print("COLLECTION_POLICY does not exist adding datastream");
-    $result = $item->add_datastream_from_url($url, "COLLECTION_POLICY", "COLLECTION_POLICY", "text/xml", 'M', "Added Collection Policy via drush update collection");
-  }
-  if (!isset($result)) {
-    drush_print('error updating/adding COLLECTION_POLICY datastream');
   }
 }
 
