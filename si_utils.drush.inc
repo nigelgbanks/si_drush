@@ -8,8 +8,38 @@
 
 /* Constants */
 define('SI_DRUSH_COMMAND_DIR', dirname(__FILE__));
-define('SI_DEFAULT_POLICY', SI_DRUSH_COMMAND_DIR . '/data/datastreams/POLICY.xml');
-define('SI_DEFAULT_COLLECTION_POLICY', SI_DRUSH_COMMAND_DIR . '/data/datastreams/COLLECTION_POLICY.xml');
+define('SI_DATA_DIR', SI_DRUSH_COMMAND_DIR . '/data');
+define('SI_IMAGE_DIR', SI_DATA_DIR . '/images');
+define('SI_DATASTREAM_DIR', SI_DATA_DIR . '/datastreams');
+define('SI_DEFAULT_POLICY', SI_DATASTREAM_DIR . '/POLICY.xml');
+define('SI_DEFAULT_COLLECTION_POLICY', SI_DATASTREAM_DIR . '/COLLECTION_POLICY.xml');
+
+// Do this until we expost these in a module or library
+@include_once 'sites/all/libraries/tuque/Datastream.php';
+@include_once 'sites/all/libraries/tuque/FedoraApi.php';
+@include_once 'sites/all/libraries/tuque/FedoraApiSerializer.php';
+@include_once 'sites/all/libraries/tuque/Object.php';
+@include_once 'sites/all/libraries/tuque/RepositoryConnection.php';
+@include_once 'sites/all/libraries/tuque/Cache.php';
+@include_once 'sites/all/libraries/tuque/RepositoryException.php';
+@include_once 'sites/all/libraries/tuque/Repository.php';
+@include_once 'sites/all/libraries/tuque/FedoraRelationships.php';
+
+/**
+ * Fetch the tuque api fedora repository.
+ */
+function si_get_tuque_fedora_repository() {
+  static $repository = NULL;
+  if(!isset($repository)) {
+    global $user;
+    $connection = new RepositoryConnection(variable_get('fedora_base_url', 'http://localhost:8080/fedora'),  $user->name, $user->pass);
+    $connection->reuseConnection = TRUE;
+    $api = new FedoraApi($connection);
+    $cache = new SimpleCache();
+    $repository = new FedoraRepository($api, $cache);
+  }
+  return $repository;
+}
 
 /**
  * Creates a object with the given attributes.

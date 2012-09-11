@@ -1,6 +1,8 @@
 <?php
 
 /**
+ * @file
+ *
  * Batch ingest script for Smithsonian Fieldbook data.
  */
 define('SMITHSONIAN_ONTOLOGY_URI', 'info:islandora/islandora-system:def/smithsonian#');
@@ -29,49 +31,8 @@ function si_batch_ingest_drush_command() {
       ),
       'aliases' => array('ingest-fieldbooks'),
       'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
-    ),
-    'si_batch_test' => array(
-      'callback' => 'drush_si_batch_test',
-      'description' => "Ingests all fieldbook related data, make sure the proper data is in the drush directory.",
-      'examples' => array(
-        'drush ingest-fieldbooks',
-      ),
-      'aliases' => array('si_test'),
-      'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN, // We can pass in users id on the command line using drush -u.
     )
   );
-}
-
-
-function drush_si_batch_test() {
-  drush_print('testing');
-  $query = 'select $object from <#ri> where
-$object <fedora-model:hasModel> <info:fedora/si:ctPlotCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:cameraTrapCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:organizationCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:peopleCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:expeditionCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:ncdCollectionCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:projectCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:lidoCollectionCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:dwcCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:ctCollectionCModel> or
-$object <fedora-model:hasModel> <info:fedora/si:collectionCModel>';
-  $results = si_run_query($query);
-  $objects = si_sparql_results_as_array($results); //turn xml into array
-  /*
-  foreach ($objects as $pid) {
-    $item = new Fedora_Item($pid);
-    if (!isset($item->datastreams['COLLECTION_POLICY'])) {
-      drush_print("Adding COLLECTION_POLICY: $pid");
-      si_add_collection_policy($item);
-    }
-    else {
-      drush_print("Updating COLLECTION_POLICY: ($pid)");
-      si_update_collection_policy($item);
-    }
-    }*/
 }
 
 /**
@@ -79,7 +40,6 @@ $object <fedora-model:hasModel> <info:fedora/si:collectionCModel>';
  */
 function drush_si_batch_ingest_fieldbooks() {
   drush_print('Batch Ingesting Fieldbooks into Fedora repository: ' . variable_get('fedora_base_url', 'http://localhost:8080/fedora'));
-  si_utils_drush_init(); // Initialize utils file.
   $ingest_functions = array(
     TYPE_PERSON => 'si_ingest_person',
     TYPE_ORGANIZATION => 'si_ingest_organization',
@@ -113,7 +73,7 @@ function drush_si_batch_ingest_fieldbooks_validate() {
   if($user->uid != 1) {
     return drush_set_error('INVALID_ARGUMENT', dt('Must be the admin user to run this command, specify "-u 1" as an argument.'));
   }
-  $valid_uris = array('http://drupal.local/nbanks', 'http://si-islandora.si.edu', 'http://si-islandora.si.edu/test'); // @TODO remove 'http://drupal.local/nbanks'
+  $valid_uris = array('http://si-islandora.si.edu', 'http://si-islandora.si.edu/test'); // @TODO remove 'http://drupal.local/nbanks'
   $cli = drush_get_context('cli');
   if(!isset($cli['uri'])) {
     return drush_set_error('INVALID_ARGUMENT', dt('The argument --uri is required. Please use either "http://si-islandora.si.edu" or "http://si-islandora.si.edu/test"'));
