@@ -14,21 +14,20 @@ define('SI_DATASTREAM_DIR', SI_DATA_DIR . '/datastreams');
 define('SI_DEFAULT_POLICY', SI_DATASTREAM_DIR . '/POLICY.xml');
 define('SI_DEFAULT_COLLECTION_POLICY', SI_DATASTREAM_DIR . '/COLLECTION_POLICY.xml');
 
-// Do this until we expost these in a module or library
-@include_once 'sites/all/libraries/tuque/Datastream.php';
-@include_once 'sites/all/libraries/tuque/FedoraApi.php';
-@include_once 'sites/all/libraries/tuque/FedoraApiSerializer.php';
-@include_once 'sites/all/libraries/tuque/Object.php';
-@include_once 'sites/all/libraries/tuque/RepositoryConnection.php';
-@include_once 'sites/all/libraries/tuque/Cache.php';
-@include_once 'sites/all/libraries/tuque/RepositoryException.php';
-@include_once 'sites/all/libraries/tuque/Repository.php';
-@include_once 'sites/all/libraries/tuque/FedoraRelationships.php';
-
 /**
  * Fetch the tuque api fedora repository.
  */
 function si_get_tuque_fedora_repository() {
+  // Do this until we expost these in a module or library
+  @include_once 'sites/all/libraries/tuque/Datastream.php';
+  @include_once 'sites/all/libraries/tuque/FedoraApi.php';
+  @include_once 'sites/all/libraries/tuque/FedoraApiSerializer.php';
+  @include_once 'sites/all/libraries/tuque/Object.php';
+  @include_once 'sites/all/libraries/tuque/RepositoryConnection.php';
+  @include_once 'sites/all/libraries/tuque/Cache.php';
+  @include_once 'sites/all/libraries/tuque/RepositoryException.php';
+  @include_once 'sites/all/libraries/tuque/Repository.php';
+  @include_once 'sites/all/libraries/tuque/FedoraRelationships.php';
   static $repository = NULL;
   if(!isset($repository)) {
     global $user;

@@ -29,16 +29,15 @@ function si_add_required_datastreams_drush_command() {
 function drush_si_add_required_datastreams($pid = NULL) {
   $repo = si_get_tuque_fedora_repository();
   if(isset($pid)) {
-    drush_print("Adding required datastreams to $pid");
     try {
       si_add_required_datastreams($repo->getObject($pid));
-     } catch(Exception $e) {
+    } catch(Exception $e) {
       drush_print("An error occured while adding the required datastreams to $pid: " . $e->getMessage());
     }
   }
   else {
     $models = array(
-      'si:imageCModel',
+      /*'si:imageCModel',
       'si:fieldbookCModel',
       'si:datasetCModel',
       'si:projectCModel',
@@ -46,11 +45,11 @@ function drush_si_add_required_datastreams($pid = NULL) {
       'si:ctPlotCModel',
       'si:peopleCModel',
       'si:organizationCModel',
-      'si:expeditionCModel',
+      'si:expeditionCModel',*/
       'si:cameraTrapCModel',
-      'si:dwcCModel',
+      /*'si:dwcCModel',
       'si:lidoCollectionCModel',
-      'si:collectionCModel'
+      'si:collectionCModel'*/
     );
     foreach($models as $model) {
       $query = 'select $o from <#ri> where $o <fedora-model:hasModel> <info:fedora/' . $model . '>';
@@ -88,8 +87,8 @@ function drush_si_add_required_datastreams_validate() {
  *   The object to add datastreams to.
  */
 function si_add_required_datastreams(FedoraObject $o) {
- $path = dirname(__FILE__) . '/data';
- $requirements = array(
+  $path = dirname(__FILE__) . '/data';
+  $requirements = array(
     'si:imageCModel' => array(
       'IMAGE' => SI_DATASTREAM_DIR . '/imageCModel/IMAGE.jpg',
       'DWC' => array('si_generate_xml_datastream_with_transform', SI_DATASTREAM_DIR . '/imageCModel/DWC.xsl'),
@@ -135,13 +134,13 @@ function si_add_required_datastreams(FedoraObject $o) {
     ),
     'si:expeditionCModel' => array(
       'TN' => SI_DATASTREAM_DIR . '/collectionCModel/TN.png',
-      'EAC-CPF' => array('si_transform_xml_datastream', SI_DATASTREAM_DIR . '/expeditionCModel/EAC-CPF.xsl'),
+      'EAC-CPF' => array('si_generate_xml_datastream_with_transform', SI_DATASTREAM_DIR . '/expeditionCModel/EAC-CPF.xsl'),
       'POLICY' => SI_DEFAULT_POLICY,
       'COLLECTION_POLICY' => SI_DEFAULT_COLLECTION_POLICY
     ),
     'si:cameraTrapCModel' => array(
-      'FGDC' => array('si_transform_xml_datastream', SI_DATASTREAM_DIR . '/cameraTrapCModel/FGDC.xsl'),
-      'CUSTOMCT' => array('si_transform_xml_datastream', SI_DATASTREAM_DIR . '/cameraTrapCModel/CUSTOMCT.xsl'),
+                                   //'FGDC' => array('si_generate_xml_datastream_with_transform', SI_DATASTREAM_DIR . '/cameraTrapCModel/FGDC.xsl'),
+      'CUSTOMCT' => array('si_generate_xml_datastream_with_transform', SI_DATASTREAM_DIR . '/cameraTrapCModel/CUSTOMCT.xsl'),
       'POLICY' => SI_DEFAULT_POLICY,
       'COLLECTION_POLICY' => SI_DEFAULT_COLLECTION_POLICY
     ),
@@ -168,19 +167,25 @@ function si_add_required_datastreams(FedoraObject $o) {
       $datastreams = array_merge($datastreams, $requirements[$model]);
     }
   }
+  drush_print("\"{$o->label}\" ({$o->id}) with model(s) [" . implode(', ', $models) . '], requires [' . implode(', ', array_keys($datastreams)) . ']:');
   foreach($datastreams as $dsid => $datastream) {
     if(isset($o[$dsid])) {
-      break; // Already Present
+      drush_print("\t* $dsid Already present");
+      continue; // Already Present
     }
-    drush_print("Adding $dsid to ($o->pid) {$o->label}");
+    drush_print("\t* Adding $dsid");
+    continue;
     $ds = $o->constructDatastream($dsid);
-    if(is_array($datasteam)) { // Needs preprocessing
-      $tmpfile = tempnam();
+    drush_print('After constructDatastream.');
+    if(is_array($datastream)) { // Needs preprocessing
+      drush_print('Array.');
+      $tmpfile = file_create_filename('datastream.xml', file_directory_temp());
+      drush_print($tmpfile);
       list($function, $file) = $datastream;
       file_put_contents($tmpfile, $function($o, $file));
       $ds->setContentFromFile($tmpfile);
       $o->ingestDatastream($ds);
-      unlink($tempfile);
+      unlink($tmpfile);
     }
     else {
       $ds->setContentFromFile($datastream);
@@ -205,6 +210,5 @@ function si_generate_xml_datastream_with_transform(FedoraObject $o, $transform) 
   $proc->importStyleSheet($xsl); // Attach the xsl rules
   $proc->setParameter('', 'label', $o->label);
   $dom->loadXML('<r></r>'); // The transform generates all the xml.
-  $out = $xsl->transformToXML( $dom );
-  return $proc->transformToXML($xml);
+  return $proc->transformToXML($dom);
 }
