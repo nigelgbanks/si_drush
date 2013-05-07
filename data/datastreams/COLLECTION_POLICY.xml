@@ -1,8 +1,8 @@
 <collection_policy xmlns="http://www.islandora.ca" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="" xsi:schemaLocation="http://www.islandora.ca http://syn.lib.umanitoba.ca/collection_policy.xsd">
   <content_models>
-    <content_model dsid="ISLANDORACM" name="Animal or plant images" namespace="si:" pid="si:imageCModel"></content_model>
     <content_model dsid="ISLANDORACM" name="Digitized text, with page images" namespace="si:" pid="si:fieldbookCModel"></content_model>
     <content_model dsid="ISLANDORACM" name="Tabular datasets" namespace="si:" pid="si:datasetCModel"></content_model>
+    <content_model dsid="ISLANDORACM" name="General image" namespace="si:" pid="si:generalImageCModel"></content_model>
   </content_models>
   <concept_models>
     <content_model dsid="ISLANDORACM" name="Project or sub-project" namespace="si:" pid="si:projectCModel"></content_model>
